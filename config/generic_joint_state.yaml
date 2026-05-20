@@ -1,0 +1,12 @@
+robotdynid_dataset_recorder:
+  ros__parameters:
+    output_root: runs
+    run_name: ""
+    joint_names: []
+    joint_state_topic: /joint_states
+    urdf_path: ""
+    duration_sec: 0.0
+    min_sample_period_sec: 0.0
+    auto_start: true
+    shutdown_on_finish: false
+    allow_missing_effort: false

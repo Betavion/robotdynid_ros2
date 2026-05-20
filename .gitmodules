@@ -1,0 +1,3 @@
+[submodule "robotdynid"]
+	path = robotdynid
+	url = https://github.com/Betavion/robotdynid.git

@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+from robotdynid_ros2.nodes.dataset_recorder_node import main
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ROS / colcon
+build/
+install/
+log/
+
+# Local environments
+.venv/
+.cache/
+.vscode/
+
+# Generated experiment outputs and large local inputs
+runs/
+artifacts/
+ref/
+*.csv
+*.pkl
+*.png
+*.ipynb
+*.bag
+*.db3
+*.mcap
+
+# Native build products
+*.o
+*.so
+*.a
+*.dylib
+
+# OS/editor
+*~
+.DS_Store
