@@ -9,10 +9,13 @@ robotdynid_dataset_recorder:
       - joint4
       - joint5
       - joint6
-    joint_state_topic: /joint_states
+    joint_state_topic: /joint_state_broadcaster/joint_states
+    estimate_joint_state_topic: /joint_states
     urdf_path: examples/sia/sia_v3_urdf.urdf
     duration_sec: 30.0
     min_sample_period_sec: 0.0
+    flush_period_sec: 0.01
+    queue_max_samples: 0
     auto_start: true
     shutdown_on_finish: true
     allow_missing_effort: false

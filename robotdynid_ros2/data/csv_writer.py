@@ -6,7 +6,7 @@ import csv
 from pathlib import Path
 from typing import Iterable
 
-from .dataset_schema import motion_columns, torque_columns
+from .dataset_schema import estimate_columns, motion_columns, torque_columns
 
 
 class SplitDatasetCsvWriter:
@@ -41,10 +41,49 @@ class SplitDatasetCsvWriter:
         self.sample_count += 1
 
     def close(self) -> None:
+        self.flush()
         self._motion_handle.close()
         self._torque_handle.close()
 
+    def flush(self) -> None:
+        self._motion_handle.flush()
+        self._torque_handle.flush()
+
     def __enter__(self) -> "SplitDatasetCsvWriter":
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:  # noqa: ANN001
+        self.close()
+
+
+class TorqueEstimateCsvWriter:
+    """Write optional estimated torque samples for diagnostics."""
+
+    def __init__(self, output_dir: str | Path, joint_names: list[str]) -> None:
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.path = self.output_dir / "torque_estimate_data.csv"
+        self.joint_names = tuple(joint_names)
+        self._handle = self.path.open("w", encoding="utf-8", newline="")
+        self._writer = csv.writer(self._handle)
+        self._writer.writerow(estimate_columns(joint_names))
+        self.sample_count = 0
+
+    def append(self, timestamp: float, effort: Iterable[float]) -> None:
+        effort_values = tuple(effort)
+        if len(effort_values) != len(self.joint_names):
+            raise ValueError(f"effort must have length {len(self.joint_names)}.")
+        self._writer.writerow([timestamp] + [float(value) for value in effort_values])
+        self.sample_count += 1
+
+    def flush(self) -> None:
+        self._handle.flush()
+
+    def close(self) -> None:
+        self.flush()
+        self._handle.close()
+
+    def __enter__(self) -> "TorqueEstimateCsvWriter":
         return self
 
     def __exit__(self, exc_type, exc, traceback) -> None:  # noqa: ANN001

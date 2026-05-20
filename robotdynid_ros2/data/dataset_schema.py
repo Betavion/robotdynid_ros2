@@ -32,6 +32,10 @@ def torque_columns(dof: int) -> list[str]:
     return [TIMESTAMP_COLUMN] + [TORQUE_TEMPLATE.format(index=index) for index in range(1, dof + 1)]
 
 
+def estimate_columns(joint_names: list[str]) -> list[str]:
+    return [TIMESTAMP_COLUMN] + [f"{joint_name}_estimate" for joint_name in joint_names]
+
+
 def one_file_columns(dof: int) -> list[str]:
     return (
         [TIMESTAMP_COLUMN]

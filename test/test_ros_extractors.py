@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from robotdynid_ros2.data.ros_extractors import ordered_joint_state_sample
+from robotdynid_ros2.data.ros_extractors import ordered_joint_effort_sample, ordered_joint_state_sample
 
 
 def _msg(**kwargs):
@@ -41,3 +41,16 @@ def test_ordered_joint_state_sample_requires_effort_by_default() -> None:
     sample = ordered_joint_state_sample(msg, ["j1"], fallback_timestamp=1.0, allow_missing_effort=True)
     assert sample.timestamp == 1.0
     assert sample.effort == (0.0,)
+
+
+def test_ordered_joint_effort_sample_does_not_require_motion_fields() -> None:
+    msg = _msg(
+        header=_msg(stamp=_msg(sec=3, nanosec=0)),
+        name=["j2", "j1"],
+        effort=[2.0, 1.0],
+    )
+
+    sample = ordered_joint_effort_sample(msg, ["j1", "j2"], fallback_timestamp=0.0)
+
+    assert sample.timestamp == 3.0
+    assert sample.effort == (1.0, 2.0)

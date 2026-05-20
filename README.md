@@ -50,7 +50,8 @@ Record split motion and torque CSV files from a `sensor_msgs/JointState` topic:
 ```bash
 ros2 launch robotdynid_ros2 collect_dataset.launch.py \
   joint_names:="[joint1,joint2,joint3,joint4,joint5,joint6]" \
-  joint_state_topic:=/joint_states \
+  joint_state_topic:=/joint_state_broadcaster/joint_states \
+  estimate_joint_state_topic:=/joint_states \
   duration_sec:=30.0
 ```
 
@@ -63,6 +64,8 @@ ros2 run robotdynid_ros2 robotdynid-generate-excitation \
 
 ros2 launch robotdynid_ros2 collect_with_trajectory.launch.py \
   joint_names:="[joint1,joint2,joint3,joint4,joint5,joint6]" \
+  joint_state_topic:=/joint_state_broadcaster/joint_states \
+  estimate_joint_state_topic:=/joint_states \
   trajectory_csv:=/tmp/robotdynid_excitation.csv \
   action_name:=/joint_trajectory_controller/follow_joint_trajectory
 ```
@@ -74,7 +77,13 @@ runs/<timestamp>/
   manifest.yaml
   data/motion.csv
   data/torque_measure_data.csv
+  data/torque_estimate_data.csv  # only when estimate_joint_state_topic is set
 ```
+
+The recorder keeps callback work small: callbacks reorder the configured joints
+and enqueue samples, while a timer flushes CSV batches. This matches the useful
+parts of older SIA scripts while avoiding fixed output filenames and silent
+working-directory coupling.
 
 ## Identify And Generate Code
 

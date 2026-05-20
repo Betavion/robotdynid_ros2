@@ -48,11 +48,17 @@ def build_collection_manifest(
     sample_count: int,
     urdf_path: str | Path | None = None,
     qdd_source: str = "estimated_from_velocity",
+    estimate_joint_state_topic: str = "",
+    estimate_csv: str | Path | None = None,
+    estimate_sample_count: int = 0,
+    dropped_motion_torque_sample_count: int = 0,
+    dropped_estimate_sample_count: int = 0,
 ) -> dict[str, Any]:
     run_path = Path(run_dir).resolve()
     data_path = Path(data_dir).resolve()
     motion_path = Path(motion_csv).resolve()
     torque_path = Path(torque_csv).resolve()
+    estimate_path = Path(estimate_csv).resolve() if estimate_csv else None
     urdf_resolved = Path(urdf_path).expanduser().resolve() if urdf_path else None
     return {
         "schema_version": 1,
@@ -65,14 +71,20 @@ def build_collection_manifest(
         },
         "collection": {
             "joint_state_topic": joint_state_topic,
+            "estimate_joint_state_topic": estimate_joint_state_topic,
             "torque_source": "sensor_msgs/JointState.effort",
             "qdd_source": qdd_source,
             "sample_count": int(sample_count),
+            "estimate_sample_count": int(estimate_sample_count),
+            "dropped_motion_torque_sample_count": int(dropped_motion_torque_sample_count),
+            "dropped_estimate_sample_count": int(dropped_estimate_sample_count),
+            "writer_mode": "buffered_timer_flush",
         },
         "data": {
             "data_dir": str(data_path),
             "motion_csv": str(motion_path),
             "torque_csv": str(torque_path),
+            **({"estimate_csv": str(estimate_path)} if estimate_path else {}),
         },
     }
 

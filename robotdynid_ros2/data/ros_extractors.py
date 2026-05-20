@@ -14,6 +14,12 @@ class OrderedJointSample:
     effort: tuple[float, ...]
 
 
+@dataclass(frozen=True)
+class OrderedJointEffortSample:
+    timestamp: float
+    effort: tuple[float, ...]
+
+
 def stamp_to_seconds(stamp: object) -> float:
     sec = getattr(stamp, "sec", 0)
     nanosec = getattr(stamp, "nanosec", 0)
@@ -58,5 +64,36 @@ def ordered_joint_state_sample(
         timestamp=timestamp,
         position=tuple(float(position[index]) for index in indices),
         velocity=tuple(float(velocity[index]) for index in indices),
+        effort=tuple(float(effort[index]) for index in indices),
+    )
+
+
+def ordered_joint_effort_sample(
+    msg: object,
+    joint_names: Sequence[str],
+    *,
+    fallback_timestamp: float,
+) -> OrderedJointEffortSample:
+    """Extract and reorder effort from a JointState-like message."""
+
+    message_names = list(getattr(msg, "name", []))
+    index_by_name = {name: index for index, name in enumerate(message_names)}
+    missing = [name for name in joint_names if name not in index_by_name]
+    if missing:
+        raise ValueError(f"JointState is missing configured joints: {missing}")
+
+    effort = list(getattr(msg, "effort", []))
+    if len(effort) < len(message_names):
+        raise ValueError("JointState.effort is required for torque identification.")
+
+    header = getattr(msg, "header", None)
+    stamp = getattr(header, "stamp", None)
+    timestamp = stamp_to_seconds(stamp) if stamp is not None else fallback_timestamp
+    if timestamp == 0.0:
+        timestamp = fallback_timestamp
+
+    indices = [index_by_name[name] for name in joint_names]
+    return OrderedJointEffortSample(
+        timestamp=timestamp,
         effort=tuple(float(effort[index]) for index in indices),
     )

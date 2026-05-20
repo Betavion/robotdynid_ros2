@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from robotdynid_ros2.data.csv_writer import SplitDatasetCsvWriter
+from robotdynid_ros2.data.csv_writer import SplitDatasetCsvWriter, TorqueEstimateCsvWriter
 from robotdynid_ros2.data.dataset_schema import motion_columns, torque_columns, validate_columns
 from robotdynid_ros2.data.manifest import build_collection_manifest, read_manifest, write_manifest
 
@@ -24,6 +24,15 @@ def test_split_csv_writer_rejects_wrong_vector_lengths(tmp_path: Path) -> None:
             writer.append(1.0, [0.1], [0.2, 0.3], [1.0, 2.0])
 
 
+def test_torque_estimate_writer_uses_joint_names(tmp_path: Path) -> None:
+    with TorqueEstimateCsvWriter(tmp_path / "data", ["joint_a", "joint_b"]) as writer:
+        writer.append(1.0, [3.0, 4.0])
+
+    summary = validate_columns(tmp_path / "data" / "torque_estimate_data.csv", ["timestamp", "joint_a_estimate", "joint_b_estimate"])
+
+    assert summary.row_count == 1
+
+
 def test_manifest_roundtrip_records_absolute_paths(tmp_path: Path) -> None:
     manifest = build_collection_manifest(
         run_dir=tmp_path,
@@ -40,4 +49,6 @@ def test_manifest_roundtrip_records_absolute_paths(tmp_path: Path) -> None:
 
     assert loaded["robot"]["dof"] == 2
     assert loaded["collection"]["sample_count"] == 12
+    assert loaded["collection"]["writer_mode"] == "buffered_timer_flush"
+    assert loaded["collection"]["dropped_motion_torque_sample_count"] == 0
     assert Path(loaded["data"]["motion_csv"]).is_absolute()
