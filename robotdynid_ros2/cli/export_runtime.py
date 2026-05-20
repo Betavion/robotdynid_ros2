@@ -7,15 +7,18 @@ import csv
 import shutil
 from pathlib import Path
 
+from robotdynid_ros2.config import export_runtime_config, read_config
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-dir", required=True, help="Identification output directory.")
-    parser.add_argument("--target-root", required=True, help="Controller package root.")
-    parser.add_argument("--include-subdir", default="include/robotdynid_ros2/generated")
-    parser.add_argument("--source-subdir", default="src/generated")
-    parser.add_argument("--namespace", default="robotdynid::generated")
-    parser.add_argument("--class-name", default="RegressorKernel")
+    parser.add_argument("--config", default="", help="Unified robotdynid_ros2 config file.")
+    parser.add_argument("--run-dir", default="", help="Identification output directory.")
+    parser.add_argument("--target-root", default="", help="Controller package root.")
+    parser.add_argument("--include-subdir", default="")
+    parser.add_argument("--source-subdir", default="")
+    parser.add_argument("--namespace", default="")
+    parser.add_argument("--class-name", default="")
     return parser.parse_args()
 
 
@@ -66,10 +69,17 @@ inline constexpr std::array<double, {len(qds)}> kQds = {{{qds_values}}};
 
 def main() -> None:
     args = parse_args()
-    run_dir = Path(args.run_dir).expanduser()
-    target_root = Path(args.target_root).expanduser()
-    source_dir = target_root / args.source_subdir
-    include_dir = target_root / args.include_subdir
+    config = export_runtime_config(read_config(args.config))
+    run_dir_raw = args.run_dir or config["run_dir"]
+    target_root_raw = args.target_root or config["target_root"]
+    if not run_dir_raw:
+        raise ValueError("--run-dir is required unless export_runtime.run_dir is configured.")
+    if not target_root_raw:
+        raise ValueError("--target-root is required unless export_runtime.target_root is configured.")
+    run_dir = Path(run_dir_raw).expanduser()
+    target_root = Path(target_root_raw).expanduser()
+    source_dir = target_root / (args.source_subdir or config["source_subdir"])
+    include_dir = target_root / (args.include_subdir or config["include_subdir"])
     source_dir.mkdir(parents=True, exist_ok=True)
     include_dir.mkdir(parents=True, exist_ok=True)
 
@@ -79,7 +89,8 @@ def main() -> None:
 
     theta = _read_vector(run_dir / "theta_lin.csv")
     qds = _read_vector(run_dir / "qds_star.csv")
-    (include_dir / "identified_params.hpp").write_text(_params_header(args.namespace, theta, qds), encoding="utf-8")
+    namespace = args.namespace or config["namespace"]
+    (include_dir / "identified_params.hpp").write_text(_params_header(namespace, theta, qds), encoding="utf-8")
 
     print(source_dir / source.name)
     print(include_dir / header.name)

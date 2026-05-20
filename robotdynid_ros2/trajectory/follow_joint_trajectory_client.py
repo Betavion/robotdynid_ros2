@@ -12,6 +12,8 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 from trajectory_msgs.msg import JointTrajectoryPoint
 
+from robotdynid_ros2.config import read_config, trajectory_config
+
 
 def _duration_from_seconds(seconds: float):
     from builtin_interfaces.msg import Duration
@@ -61,16 +63,22 @@ class FollowJointTrajectoryCsvClient(Node):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--trajectory", required=True)
-    parser.add_argument("--action-name", default="/joint_trajectory_controller/follow_joint_trajectory")
+    parser.add_argument("--config", default="", help="Unified robotdynid_ros2 config file.")
+    parser.add_argument("--trajectory", default="")
+    parser.add_argument("--action-name", default="")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    joint_names, points = _load_csv_trajectory(Path(args.trajectory))
+    config = trajectory_config(read_config(args.config))
+    trajectory = args.trajectory or config["csv_path"] or config["output"]
+    action_name = args.action_name or config["action_name"]
+    if not trajectory:
+        raise ValueError("--trajectory is required unless trajectory.csv_path is configured.")
+    joint_names, points = _load_csv_trajectory(Path(trajectory))
     rclpy.init()
-    node = FollowJointTrajectoryCsvClient(args.action_name)
+    node = FollowJointTrajectoryCsvClient(action_name)
     try:
         if not node.send(joint_names, points):
             raise RuntimeError("Trajectory goal was rejected or failed.")

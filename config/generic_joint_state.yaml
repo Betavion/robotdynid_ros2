@@ -1,15 +1,82 @@
-robotdynid_dataset_recorder:
-  ros__parameters:
-    output_root: runs
-    run_name: ""
-    joint_names: []
-    joint_state_topic: /joint_states
-    estimate_joint_state_topic: ""
-    urdf_path: ""
-    duration_sec: 0.0
-    min_sample_period_sec: 0.0
-    flush_period_sec: 0.01
-    queue_max_samples: 0
-    auto_start: true
-    shutdown_on_finish: false
-    allow_missing_effort: false
+robot:
+  urdf_path: ""
+  dof: 0
+  joint_names: []
+
+run:
+  output_root: runs
+  run_name: ""
+
+recording:
+  joint_state_topic: /joint_states
+  estimate_joint_state_topic: ""
+  duration_sec: 0.0
+  min_sample_period_sec: 0.0
+  flush_period_sec: 0.01
+  queue_max_samples: 0
+  auto_start: true
+  shutdown_on_finish: false
+  allow_missing_effort: false
+
+trajectory:
+  action_name: /joint_trajectory_controller/follow_joint_trajectory
+  csv_path: ""
+  send_delay_sec: 1.0
+  generation:
+    output: ""
+    duration: 30.0
+    sample_period: 0.05
+    amplitude: 0.2
+    frequency: 0.1
+    center: []
+
+identification:
+  manifest: ""
+  csv: ""
+  motion_csv: ""
+  torque_csv: ""
+  stride: 100
+  max_samples: 3000
+  selection_samples: 800
+  selection_source: model
+  selection_random_seed: 42
+  selection_velocity_scale: 0.5
+  selection_acceleration_scale: 0.5
+  qds_init: []
+  max_iterations: 8
+  chunk_size: 0
+  output_dir: ""
+  prediction_plot_stride: 50
+  save_prediction_plot: true
+
+codegen:
+  export_code: false
+  languages: [c]
+  output_subdir: codegen
+  namespace: robotdynid::generated
+  class_name: RegressorKernel
+
+export_runtime:
+  run_dir: ""
+  target_root: ""
+  include_subdir: include/robotdynid_ros2/generated
+  source_subdir: src/generated
+  namespace: robotdynid::generated
+  class_name: RegressorKernel
+
+bag_to_csv:
+  bag: ""
+  joint_state_topic: ""
+  joint_names: []
+  output_root: runs
+  run_name: ""
+  urdf: ""
+  storage_id: sqlite3
+  allow_missing_effort: false
+
+validation:
+  manifest: ""
+  dof: 0
+  csv: ""
+  motion_csv: ""
+  torque_csv: ""

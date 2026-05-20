@@ -43,31 +43,40 @@ python3 -m venv .venv
 pip install -e robotdynid
 ```
 
+## Configuration
+
+The unified config contains these sections:
+
+- `robot`: URDF, DOF, joint order.
+- `run`: output root and optional run name.
+- `recording`: measured/estimated JointState topics and recorder timing.
+- `trajectory`: FollowJointTrajectory action and excitation generation.
+- `identification`: dataset inputs and optimization settings.
+- `codegen`: generated-language and namespace settings.
+- `export_runtime`: controller-package export paths.
+- `bag_to_csv` and `validation`: offline conversion and dataset checks.
+
 ## Collect Data
 
-Record split motion and torque CSV files from a `sensor_msgs/JointState` topic:
+Most runtime behavior is configured through one YAML file. Start from
+`config/sia_example.yaml` for the current SIA setup, or
+`config/generic_joint_state.yaml` for a blank template.
+
+Record split motion and torque CSV files from the configured topics:
 
 ```bash
 ros2 launch robotdynid_ros2 collect_dataset.launch.py \
-  joint_names:="[joint1,joint2,joint3,joint4,joint5,joint6]" \
-  joint_state_topic:=/joint_state_broadcaster/joint_states \
-  estimate_joint_state_topic:=/joint_states \
-  duration_sec:=30.0
+  config:=config/sia_example.yaml
 ```
 
-Generate and send a simple excitation trajectory while recording:
+Generate and send the configured excitation trajectory while recording:
 
 ```bash
 ros2 run robotdynid_ros2 robotdynid-generate-excitation \
-  --joint-names joint1,joint2,joint3,joint4,joint5,joint6 \
-  --output /tmp/robotdynid_excitation.csv
+  --config config/sia_example.yaml
 
 ros2 launch robotdynid_ros2 collect_with_trajectory.launch.py \
-  joint_names:="[joint1,joint2,joint3,joint4,joint5,joint6]" \
-  joint_state_topic:=/joint_state_broadcaster/joint_states \
-  estimate_joint_state_topic:=/joint_states \
-  trajectory_csv:=/tmp/robotdynid_excitation.csv \
-  action_name:=/joint_trajectory_controller/follow_joint_trajectory
+  config:=config/sia_example.yaml
 ```
 
 The recorder writes:
@@ -89,21 +98,28 @@ working-directory coupling.
 
 ```bash
 ros2 run robotdynid_ros2 robotdynid-identify-codegen \
-  --manifest runs/<timestamp>/manifest.yaml \
-  --export-code \
-  --codegen-languages c,cpp
+  --config config/sia_example.yaml \
+  --manifest runs/<timestamp>/manifest.yaml
 ```
 
 Outputs are written under `runs/<timestamp>/identify` unless `--output-dir` is
 provided.
 
+The complete collection and identification flow can also be launched from one
+configured entry point:
+
+```bash
+ros2 launch robotdynid_ros2 full_pipeline.launch.py \
+  config:=config/sia_example.yaml
+```
+
 ## Export Runtime Kernel
 
 ```bash
 ros2 run robotdynid_ros2 robotdynid-export-runtime \
+  --config config/sia_example.yaml \
   --run-dir runs/<timestamp>/identify \
-  --target-root /path/to/controller_package \
-  --namespace robotdynid::generated
+  --target-root /path/to/controller_package
 ```
 
 This copies the generated `predict_tau` C++ kernel and writes an

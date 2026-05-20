@@ -7,6 +7,8 @@ import csv
 import math
 from pathlib import Path
 
+from robotdynid_ros2.config import read_config, trajectory_config
+
 
 def generate_sine_trajectory(
     *,
@@ -31,35 +33,42 @@ def generate_sine_trajectory(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--joint-names", required=True, help="Comma-separated joint names.")
-    parser.add_argument("--output", required=True)
-    parser.add_argument("--duration", type=float, default=30.0)
-    parser.add_argument("--sample-period", type=float, default=0.05)
-    parser.add_argument("--amplitude", type=float, default=0.2)
-    parser.add_argument("--frequency", type=float, default=0.1)
+    parser.add_argument("--config", default="", help="Unified robotdynid_ros2 config file.")
+    parser.add_argument("--joint-names", default="", help="Comma-separated joint names.")
+    parser.add_argument("--output", default="")
+    parser.add_argument("--duration", type=float, default=None)
+    parser.add_argument("--sample-period", type=float, default=None)
+    parser.add_argument("--amplitude", type=float, default=None)
+    parser.add_argument("--frequency", type=float, default=None)
     parser.add_argument("--center", default="", help="Comma-separated center positions. Defaults to zeros.")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    joint_names = [part.strip() for part in args.joint_names.split(",") if part.strip()]
+    config = trajectory_config(read_config(args.config))
+    joint_names_raw = args.joint_names or config["joint_names"]
+    joint_names = [part.strip() for part in joint_names_raw.split(",") if part.strip()]
     if not joint_names:
         raise ValueError("--joint-names must not be empty.")
     center = [0.0] * len(joint_names)
-    if args.center:
-        center = [float(part.strip()) for part in args.center.split(",") if part.strip()]
+    center_raw = args.center or config["center"]
+    if center_raw:
+        center = [float(part.strip()) for part in center_raw.split(",") if part.strip()]
         if len(center) != len(joint_names):
             raise ValueError("--center length must match --joint-names.")
+    output_raw = args.output or config["output"]
+    if not output_raw:
+        raise ValueError("--output is required unless trajectory.generation.output is configured.")
     rows = generate_sine_trajectory(
         joint_names=joint_names,
-        duration=args.duration,
-        sample_period=args.sample_period,
-        amplitude=args.amplitude,
-        frequency=args.frequency,
+        duration=args.duration if args.duration is not None else float(config["duration"]),
+        sample_period=args.sample_period if args.sample_period is not None else float(config["sample_period"]),
+        amplitude=args.amplitude if args.amplitude is not None else float(config["amplitude"]),
+        frequency=args.frequency if args.frequency is not None else float(config["frequency"]),
         center=center,
     )
-    output = Path(args.output)
+    output = Path(output_raw)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=["time_from_start"] + joint_names)
