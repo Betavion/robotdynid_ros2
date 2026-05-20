@@ -225,6 +225,7 @@ def trajectory_config(config: dict[str, Any]) -> dict[str, Any]:
     trajectory = section(config, "trajectory")
     generation = section(trajectory, "generation") if trajectory else {}
     return {
+        "enabled": as_bool(trajectory.get("enabled"), False),
         "action_name": str(trajectory.get("action_name", "/joint_trajectory_controller/follow_joint_trajectory")),
         "csv_path": str(trajectory.get("csv_path", "")),
         "send_delay_sec": as_float(trajectory.get("send_delay_sec"), 1.0),

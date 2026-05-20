@@ -79,8 +79,9 @@ def _setup(context, *args, **kwargs):  # noqa: ANN001
             )
         ),
     ]
-    trajectory_csv = _arg(context, "trajectory_csv") or trajectory["csv_path"]
-    if trajectory_csv:
+    trajectory_override = _arg(context, "trajectory_csv")
+    trajectory_csv = trajectory_override or trajectory["csv_path"]
+    if trajectory_csv and (trajectory_override or trajectory["enabled"]):
         actions.append(
             TimerAction(
                 period=as_float(_arg(context, "send_delay_sec") or trajectory["send_delay_sec"], 1.0),

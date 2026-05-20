@@ -45,12 +45,15 @@ pip install -e robotdynid
 
 ## Configuration
 
-The unified config contains these sections:
+The unified config only needs the sections you actually use. Missing fields use
+code defaults. For most SIA runs, `config/sia_example.yaml` is enough.
+
+Common sections:
 
 - `robot`: URDF, DOF, joint order.
 - `run`: output root and optional run name.
 - `recording`: measured/estimated JointState topics and recorder timing.
-- `trajectory`: FollowJointTrajectory action and excitation generation.
+- `trajectory`: optional FollowJointTrajectory action and excitation generation.
 - `identification`: dataset inputs and optimization settings.
 - `codegen`: generated-language and namespace settings.
 - `export_runtime`: controller-package export paths.
@@ -76,8 +79,13 @@ ros2 run robotdynid_ros2 robotdynid-generate-excitation \
   --config config/sia_example.yaml
 
 ros2 launch robotdynid_ros2 collect_with_trajectory.launch.py \
-  config:=config/sia_example.yaml
+  config:=config/sia_example.yaml \
+  trajectory_csv:=runs/sia_excitation.csv
 ```
+
+`follow_joint_trajectory` is not a sampled topic. It is only used by
+`robotdynid-send-trajectory` as an action client when you explicitly ask the
+tool to send an excitation trajectory.
 
 The recorder writes:
 

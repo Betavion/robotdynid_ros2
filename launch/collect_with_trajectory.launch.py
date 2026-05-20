@@ -34,7 +34,8 @@ def _setup(context, *args, **kwargs):  # noqa: ANN001
     if _arg(context, "queue_max_samples"):
         params["queue_max_samples"] = as_int(_arg(context, "queue_max_samples"))
 
-    trajectory_csv = _arg(context, "trajectory_csv") or trajectory["csv_path"]
+    trajectory_override = _arg(context, "trajectory_csv")
+    trajectory_csv = trajectory_override or trajectory["csv_path"]
     action_name = _arg(context, "action_name") or trajectory["action_name"]
     send_delay_sec = as_float(_arg(context, "send_delay_sec") or trajectory["send_delay_sec"], 1.0)
 
@@ -47,7 +48,7 @@ def _setup(context, *args, **kwargs):  # noqa: ANN001
             parameters=[params],
         )
     ]
-    if trajectory_csv:
+    if trajectory_csv and (trajectory_override or trajectory["enabled"]):
         actions.append(
             TimerAction(
                 period=send_delay_sec,

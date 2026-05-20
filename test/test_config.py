@@ -24,6 +24,7 @@ codegen:
   export_code: true
   languages: [c, cpp]
 trajectory:
+  enabled: true
   csv_path: trajectory.csv
 """,
         encoding="utf-8",
@@ -41,3 +42,4 @@ trajectory:
     assert identification["export_code"] is True
     assert identification["codegen_languages"] == "c,cpp"
     assert trajectory["csv_path"] == "trajectory.csv"
+    assert trajectory["enabled"] is True
