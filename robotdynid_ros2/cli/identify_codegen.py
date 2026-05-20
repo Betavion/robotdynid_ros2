@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--selection-random-seed", type=int, default=None)
     parser.add_argument("--selection-velocity-scale", type=float, default=None)
     parser.add_argument("--selection-acceleration-scale", type=float, default=None)
-    parser.add_argument("--qds-init", default=None, help="Comma-separated Stribeck velocity initial guess.")
+    parser.add_argument("--stribeck-init", default=None, help="Comma-separated Stribeck parameter initial guess.")
     parser.add_argument("--max-iterations", type=int, default=None)
     parser.add_argument("--chunk-size", type=int, default=None)
     parser.add_argument("--output-dir", default=None, help="Output directory. Defaults to manifest run_dir/identify or runs/<timestamp>.")
@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _parse_qds_init(raw: str) -> np.ndarray | None:
+def _parse_stribeck_init(raw: str) -> np.ndarray | None:
     if not raw:
         return None
     return np.asarray([float(part.strip()) for part in raw.split(",") if part.strip()], dtype=float)
@@ -123,7 +123,9 @@ def main() -> None:
             selection_random_seed=int(_pick(args.selection_random_seed, config_values["selection_random_seed"])),
             selection_velocity_scale=float(_pick(args.selection_velocity_scale, config_values["selection_velocity_scale"])),
             selection_acceleration_scale=float(_pick(args.selection_acceleration_scale, config_values["selection_acceleration_scale"])),
-            qds_init=_parse_qds_init(str(_pick_text(args.qds_init, str(config_values["qds_init"])))),
+            stribeck_parameter_init=_parse_stribeck_init(
+                str(_pick_text(args.stribeck_init, str(config_values["stribeck_init"])))
+            ),
             max_iterations=int(_pick(args.max_iterations, config_values["max_iterations"])),
             chunk_size=int(_pick(args.chunk_size, config_values["chunk_size"])) or None,
             output_dir=output_dir,

@@ -206,7 +206,7 @@ def identification_config(config: dict[str, Any]) -> dict[str, Any]:
         "selection_random_seed": as_int(identification.get("selection_random_seed"), 42),
         "selection_velocity_scale": as_float(identification.get("selection_velocity_scale"), 0.5),
         "selection_acceleration_scale": as_float(identification.get("selection_acceleration_scale"), 0.5),
-        "qds_init": as_csv(identification.get("qds_init", "")),
+        "stribeck_init": as_csv(identification.get("stribeck_init", "")),
         "max_iterations": as_int(identification.get("max_iterations"), 8),
         "chunk_size": as_int(identification.get("chunk_size"), 0),
         "output_dir": str(identification.get("output_dir", "")),

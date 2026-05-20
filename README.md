@@ -111,7 +111,9 @@ ros2 run robotdynid_ros2 robotdynid-identify-codegen \
 ```
 
 Outputs are written under `runs/<timestamp>/identify` unless `--output-dir` is
-provided.
+provided. The main artifacts are `identify_result.json`,
+`identified_linear_parameters.csv`, `identified_stribeck_parameters.csv`,
+`base_metadata.json`, `prediction.png`, and `codegen/<language>/`.
 
 The complete collection and identification flow can also be launched from one
 configured entry point:
@@ -131,4 +133,5 @@ ros2 run robotdynid_ros2 robotdynid-export-runtime \
 ```
 
 This copies the generated `predict_tau` C++ kernel and writes an
-`identified_params.hpp` header with fixed `theta_lin` and `qds` arrays.
+`identified_params.hpp` header with fixed `linear_parameters` and
+`stribeck_parameters` arrays.

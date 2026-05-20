@@ -9,12 +9,12 @@ def test_params_header_uses_namespace_and_array_sizes() -> None:
 
     assert "namespace robotdynid {" in header
     assert "namespace generated {" in header
-    assert "std::array<double, 2> kThetaLin" in header
-    assert "std::array<double, 1> kQds" in header
+    assert "std::array<double, 2> kLinearParameters" in header
+    assert "std::array<double, 1> kStribeckParameters" in header
 
 
 def test_read_vector_accepts_named_csv(tmp_path: Path) -> None:
-    path = tmp_path / "theta_lin.csv"
+    path = tmp_path / "identified_linear_parameters.csv"
     path.write_text("name,value\nbip01,1.5\nbip02,-2.0\n", encoding="utf-8")
 
     assert _read_vector(path) == [1.5, -2.0]

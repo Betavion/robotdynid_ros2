@@ -49,19 +49,19 @@ def _find_prediction_files(run_dir: Path) -> tuple[Path, Path]:
     raise FileNotFoundError(f"Could not find codegen/cpp/predict_tau.cpp/.hpp under {run_dir}")
 
 
-def _params_header(namespace: str, theta: list[float], qds: list[float]) -> str:
+def _params_header(namespace: str, linear_parameters: list[float], stribeck_parameters: list[float]) -> str:
     namespace_open = "\n".join(f"namespace {part} {{" for part in namespace.split("::") if part)
     namespace_close = "\n".join("}" for part in reversed([part for part in namespace.split("::") if part]))
-    theta_values = ", ".join(f"{value:.17g}" for value in theta)
-    qds_values = ", ".join(f"{value:.17g}" for value in qds)
+    linear_values = ", ".join(f"{value:.17g}" for value in linear_parameters)
+    stribeck_values = ", ".join(f"{value:.17g}" for value in stribeck_parameters)
     return f"""#pragma once
 
 #include <array>
 
 {namespace_open}
 
-inline constexpr std::array<double, {len(theta)}> kThetaLin = {{{theta_values}}};
-inline constexpr std::array<double, {len(qds)}> kQds = {{{qds_values}}};
+inline constexpr std::array<double, {len(linear_parameters)}> kLinearParameters = {{{linear_values}}};
+inline constexpr std::array<double, {len(stribeck_parameters)}> kStribeckParameters = {{{stribeck_values}}};
 
 {namespace_close}
 """
@@ -87,10 +87,13 @@ def main() -> None:
     shutil.copy2(source, source_dir / source.name)
     shutil.copy2(header, include_dir / header.name)
 
-    theta = _read_vector(run_dir / "theta_lin.csv")
-    qds = _read_vector(run_dir / "qds_star.csv")
+    linear_parameters = _read_vector(run_dir / "identified_linear_parameters.csv")
+    stribeck_parameters = _read_vector(run_dir / "identified_stribeck_parameters.csv")
     namespace = args.namespace or config["namespace"]
-    (include_dir / "identified_params.hpp").write_text(_params_header(namespace, theta, qds), encoding="utf-8")
+    (include_dir / "identified_params.hpp").write_text(
+        _params_header(namespace, linear_parameters, stribeck_parameters),
+        encoding="utf-8",
+    )
 
     print(source_dir / source.name)
     print(include_dir / header.name)
