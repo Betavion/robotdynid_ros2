@@ -24,6 +24,15 @@ def test_split_csv_writer_rejects_wrong_vector_lengths(tmp_path: Path) -> None:
             writer.append(1.0, [0.1], [0.2, 0.3], [1.0, 2.0])
 
 
+def test_split_csv_writer_can_include_acceleration(tmp_path: Path) -> None:
+    with SplitDatasetCsvWriter(tmp_path / "data", dof=2, include_acceleration=True) as writer:
+        writer.append(1.25, [0.1, 0.2], [0.3, 0.4], [1.0, 2.0], acceleration=[0.5, 0.6])
+
+    motion = validate_columns(tmp_path / "data" / "motion.csv", motion_columns(2, include_acceleration=True))
+
+    assert motion.row_count == 1
+
+
 def test_torque_estimate_writer_uses_joint_names(tmp_path: Path) -> None:
     with TorqueEstimateCsvWriter(tmp_path / "data", ["joint_a", "joint_b"]) as writer:
         writer.append(1.0, [3.0, 4.0])
@@ -39,6 +48,7 @@ def test_manifest_roundtrip_records_absolute_paths(tmp_path: Path) -> None:
         data_dir=tmp_path / "data",
         motion_csv=tmp_path / "data" / "motion.csv",
         torque_csv=tmp_path / "data" / "torque_measure_data.csv",
+        trajectory_csv=tmp_path / "excitation.csv",
         joint_names=["j1", "j2"],
         joint_state_topic="/joint_states",
         sample_count=12,
@@ -50,5 +60,6 @@ def test_manifest_roundtrip_records_absolute_paths(tmp_path: Path) -> None:
     assert loaded["robot"]["dof"] == 2
     assert loaded["collection"]["sample_count"] == 12
     assert loaded["collection"]["writer_mode"] == "buffered_timer_flush"
+    assert loaded["collection"]["commanded_trajectory_csv"].endswith("excitation.csv")
     assert loaded["collection"]["dropped_motion_torque_sample_count"] == 0
     assert Path(loaded["data"]["motion_csv"]).is_absolute()

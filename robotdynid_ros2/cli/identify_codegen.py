@@ -8,8 +8,10 @@ from pathlib import Path
 
 import numpy as np
 
-from robotdynid_ros2.config import identification_config, read_config
-from robotdynid_ros2.data.manifest import resolve_manifest_data_paths
+from robotdynid_ros2.config import identification_config, preprocessing_config, read_config
+from robotdynid_ros2.data.manifest import read_manifest, resolve_manifest_data_paths
+from robotdynid_ros2.paths import timestamped_run_dir
+from robotdynid_ros2.preprocessing.acceleration import preprocess_split_dataset
 from robotdynid_ros2.robotdynid_loader import ensure_robotdynid_available
 
 
@@ -99,13 +101,32 @@ def _resolve_inputs(
 
 def main() -> None:
     args = parse_args()
-    config_values = identification_config(read_config(args.config))
+    raw_config = read_config(args.config)
+    config_values = identification_config(raw_config)
+    preprocess_values = preprocessing_config(raw_config)
     ensure_robotdynid_available()
     from robotdynid.workflow import IdentificationWorkflowConfig, run_identification_workflow
 
     urdf_path, dof, csv_path, motion_csv, torque_csv, output_dir = _resolve_inputs(args, config_values)
     if urdf_path is None:
         raise ValueError("A URDF path is required for identification.")
+    if csv_path is None and motion_csv is not None and torque_csv is not None and preprocess_values["enabled"]:
+        if output_dir is None:
+            output_dir = timestamped_run_dir("runs")
+        manifest_raw = _pick_text(args.manifest, str(config_values["manifest"]))
+        trajectory_csv = str(preprocess_values["trajectory_csv"])
+        if not trajectory_csv and manifest_raw:
+            trajectory_csv = str(read_manifest(manifest_raw).get("collection", {}).get("commanded_trajectory_csv", ""))
+        preprocess_report = preprocess_split_dataset(
+            motion_csv=motion_csv,
+            torque_csv=torque_csv,
+            dof=dof,
+            output_dir=Path(output_dir) / "preprocess",
+            config=preprocess_values,
+            trajectory_csv=trajectory_csv or None,
+        )
+        motion_csv = Path(str(preprocess_report["output"]["motion_csv"]))
+        torque_csv = Path(str(preprocess_report["output"]["torque_csv"]))
 
     export_code = bool(config_values["export_code"]) if args.export_code is None else args.export_code
     save_prediction_plot = bool(config_values["save_prediction_plot"]) and not args.no_plot

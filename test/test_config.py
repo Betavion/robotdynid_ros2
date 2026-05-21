@@ -43,3 +43,4 @@ trajectory:
     assert identification["codegen_languages"] == "c,cpp"
     assert trajectory["csv_path"] == "trajectory.csv"
     assert trajectory["enabled"] is True
+    assert trajectory["joint_names"] == ["j1", "j2"]

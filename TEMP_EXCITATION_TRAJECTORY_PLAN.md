@@ -5,6 +5,37 @@ trajectory generation, validation, execution, and acceleration preprocessing in
 `robotdynid_ros2`. It is intentionally temporary and should be replaced by
 formal docs once the implementation stabilizes.
 
+## Implementation Status
+
+Implemented in the current package:
+
+- Dynamics-aware trajectory CSV schema with analytic position, velocity, and
+  acceleration columns.
+- URDF joint-limit based scaling for `safe_multisine`, `friction_sweep`,
+  `gravity_sweep`, and the default `composite` profile.
+- Deterministic candidate search with limit metrics and optional regressor
+  rank/conditioning score.
+- `robotdynid-send-trajectory` now sends positions, velocities, and
+  accelerations through `FollowJointTrajectory`.
+- `robotdynid-validate-excitation` validates schema, timing, joint limits,
+  optional Pinocchio torque screening, optional MoveIt `/check_state_validity`,
+  and optional fake-hardware dry-run.
+- Split motion CSVs can include acceleration columns, and the core loader uses
+  them when present.
+- `robotdynid-preprocess-dataset` and `robotdynid-identify-codegen` perform
+  trajectory-aware acceleration preprocessing with filtered fallback.
+- `collect_with_trajectory.launch.py` and `full_pipeline.launch.py` can generate
+  configured trajectories before recording, and manifests record the commanded
+  trajectory path.
+
+Remaining future work:
+
+- Add a native continuous optimizer after deterministic candidate search.
+- Add richer collision reports with contact pairs when MoveIt exposes contact
+  detail through the chosen service/backend.
+- Replace this temporary plan with versioned user documentation after real
+  hardware validation.
+
 ## Goals
 
 - Generate excitation trajectories that improve robot dynamics identification
@@ -407,4 +438,3 @@ preprocessing:
   observation-matrix conditioning to improve base-parameter estimation.
 - MoveIt2 PlanningScene is the preferred ROS2 collision-checking layer for
   trajectory preflight.
-

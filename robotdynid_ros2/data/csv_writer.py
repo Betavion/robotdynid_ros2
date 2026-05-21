@@ -12,8 +12,9 @@ from .dataset_schema import estimate_columns, motion_columns, torque_columns
 class SplitDatasetCsvWriter:
     """Write motion and torque samples using robotdynid's split CSV schema."""
 
-    def __init__(self, output_dir: str | Path, dof: int) -> None:
+    def __init__(self, output_dir: str | Path, dof: int, *, include_acceleration: bool = False) -> None:
         self.dof = dof
+        self.include_acceleration = include_acceleration
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.motion_path = self.output_dir / "motion.csv"
@@ -22,19 +23,31 @@ class SplitDatasetCsvWriter:
         self._torque_handle = self.torque_path.open("w", encoding="utf-8", newline="")
         self._motion_writer = csv.writer(self._motion_handle)
         self._torque_writer = csv.writer(self._torque_handle)
-        self._motion_writer.writerow(motion_columns(dof))
+        self._motion_writer.writerow(motion_columns(dof, include_acceleration=include_acceleration))
         self._torque_writer.writerow(torque_columns(dof))
         self.sample_count = 0
 
-    def append(self, timestamp: float, position: Iterable[float], velocity: Iterable[float], effort: Iterable[float]) -> None:
+    def append(
+        self,
+        timestamp: float,
+        position: Iterable[float],
+        velocity: Iterable[float],
+        effort: Iterable[float],
+        acceleration: Iterable[float] | None = None,
+    ) -> None:
         position_values = tuple(position)
         velocity_values = tuple(velocity)
         effort_values = tuple(effort)
         if len(position_values) != self.dof or len(velocity_values) != self.dof or len(effort_values) != self.dof:
             raise ValueError(f"position, velocity and effort must all have length {self.dof}.")
+        acceleration_values = tuple(acceleration) if acceleration is not None else ()
+        if self.include_acceleration and len(acceleration_values) != self.dof:
+            raise ValueError(f"acceleration must have length {self.dof} when include_acceleration is enabled.")
         motion_row: list[float] = [timestamp]
-        for pos_value, vel_value in zip(position_values, velocity_values, strict=True):
+        for index, (pos_value, vel_value) in enumerate(zip(position_values, velocity_values, strict=True)):
             motion_row.extend((float(pos_value), float(vel_value)))
+            if self.include_acceleration:
+                motion_row.append(float(acceleration_values[index]))
         torque_row = [timestamp] + [float(value) for value in effort_values]
         self._motion_writer.writerow(motion_row)
         self._torque_writer.writerow(torque_row)

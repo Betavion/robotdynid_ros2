@@ -9,6 +9,40 @@ recording:
   duration_sec: 30.0
   shutdown_on_finish: true
 
+trajectory:
+  enabled: true
+  action_name: /joint_trajectory_controller/follow_joint_trajectory
+  csv_path: runs/sia_excitation.csv
+  send_delay_sec: 2.0
+  generation:
+    profile: composite
+    duration: 60.0
+    sample_period: 0.01
+    harmonics: 5
+    home_position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    center: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    acceleration_limits: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+    search_candidates: 8
+  validate:
+    enabled: true
+    collision: false
+    moveit_group: sia_arm
+
+preprocessing:
+  enabled: true
+  acceleration_source: fitted
+  time_alignment:
+    max_offset_sec: 0.2
+  fitting:
+    method: generated_profile
+    discard_start_sec: 0.5
+    discard_end_sec: 0.5
+    max_position_rmse: 0.05
+  filtering:
+    method: savgol
+    window_sec: 0.15
+    poly_order: 3
+
 identification:
   stride: 50
   max_samples: 1200

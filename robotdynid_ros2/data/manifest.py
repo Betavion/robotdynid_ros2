@@ -50,6 +50,7 @@ def build_collection_manifest(
     qdd_source: str = "estimated_from_velocity",
     estimate_joint_state_topic: str = "",
     estimate_csv: str | Path | None = None,
+    trajectory_csv: str | Path | None = None,
     estimate_sample_count: int = 0,
     dropped_motion_torque_sample_count: int = 0,
     dropped_estimate_sample_count: int = 0,
@@ -59,6 +60,7 @@ def build_collection_manifest(
     motion_path = Path(motion_csv).resolve()
     torque_path = Path(torque_csv).resolve()
     estimate_path = Path(estimate_csv).resolve() if estimate_csv else None
+    trajectory_path = Path(trajectory_csv).resolve() if trajectory_csv else None
     urdf_resolved = Path(urdf_path).expanduser().resolve() if urdf_path else None
     return {
         "schema_version": 1,
@@ -79,6 +81,7 @@ def build_collection_manifest(
             "dropped_motion_torque_sample_count": int(dropped_motion_torque_sample_count),
             "dropped_estimate_sample_count": int(dropped_estimate_sample_count),
             "writer_mode": "buffered_timer_flush",
+            "commanded_trajectory_csv": str(trajectory_path) if trajectory_path else "",
         },
         "data": {
             "data_dir": str(data_path),

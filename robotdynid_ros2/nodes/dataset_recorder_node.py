@@ -46,6 +46,7 @@ class DatasetRecorderNode(Node):
         self.declare_parameter("joint_names", [])
         self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("estimate_joint_state_topic", "")
+        self.declare_parameter("commanded_trajectory_csv", "")
         self.declare_parameter("urdf_path", "")
         self.declare_parameter("duration_sec", 0.0)
         self.declare_parameter("min_sample_period_sec", 0.0)
@@ -61,6 +62,7 @@ class DatasetRecorderNode(Node):
 
         self._topic = str(self.get_parameter("joint_state_topic").value)
         self._estimate_topic = str(self.get_parameter("estimate_joint_state_topic").value)
+        self._commanded_trajectory_csv = str(self.get_parameter("commanded_trajectory_csv").value)
         self._urdf_path = str(self.get_parameter("urdf_path").value)
         self._min_sample_period = float(self.get_parameter("min_sample_period_sec").value)
         self._flush_period = float(self.get_parameter("flush_period_sec").value)
@@ -142,6 +144,7 @@ class DatasetRecorderNode(Node):
             urdf_path=self._urdf_path,
             estimate_joint_state_topic=self._estimate_topic,
             estimate_csv=estimate_path,
+            trajectory_csv=self._commanded_trajectory_csv,
             estimate_sample_count=estimate_count,
             dropped_motion_torque_sample_count=self._dropped_sample_count,
             dropped_estimate_sample_count=self._dropped_estimate_count,

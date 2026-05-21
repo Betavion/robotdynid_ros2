@@ -4,3 +4,15 @@ robot:
 
 recording:
   joint_state_topic: /joint_states
+
+trajectory:
+  enabled: false
+  action_name: /joint_trajectory_controller/follow_joint_trajectory
+  generation:
+    profile: composite
+    duration: 60.0
+    sample_period: 0.01
+
+preprocessing:
+  enabled: true
+  acceleration_source: fitted

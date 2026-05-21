@@ -10,6 +10,7 @@ from pathlib import Path
 TIMESTAMP_COLUMN = "timestamp"
 POSITION_TEMPLATE = "joint{index}_position"
 VELOCITY_TEMPLATE = "joint{index}_velocity"
+ACCELERATION_TEMPLATE = "joint{index}_acceleration"
 TORQUE_TEMPLATE = "joint{index}_measure"
 
 
@@ -20,11 +21,16 @@ class DatasetSummary:
     columns: tuple[str, ...]
 
 
-def motion_columns(dof: int) -> list[str]:
+def motion_columns(dof: int, include_acceleration: bool = False) -> list[str]:
+    per_joint = (POSITION_TEMPLATE, VELOCITY_TEMPLATE, ACCELERATION_TEMPLATE) if include_acceleration else (
+        POSITION_TEMPLATE,
+        VELOCITY_TEMPLATE,
+    )
     return [TIMESTAMP_COLUMN] + [
         name
         for index in range(1, dof + 1)
-        for name in (POSITION_TEMPLATE.format(index=index), VELOCITY_TEMPLATE.format(index=index))
+        for template in per_joint
+        for name in (template.format(index=index),)
     ]
 
 

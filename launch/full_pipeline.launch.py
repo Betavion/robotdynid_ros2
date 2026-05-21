@@ -48,6 +48,11 @@ def _setup(context, *args, **kwargs):  # noqa: ANN001
     manifest = str(run_dir / "manifest.yaml")
     codegen_languages = _arg(context, "codegen_languages") or identification["codegen_languages"]
 
+    trajectory_override = _arg(context, "trajectory_csv")
+    trajectory_csv = trajectory_override or trajectory["csv_path"]
+    if trajectory_csv:
+        params["commanded_trajectory_csv"] = trajectory_csv
+
     recorder = Node(
         package="robotdynid_ros2",
         executable="dataset_recorder",
@@ -70,19 +75,15 @@ def _setup(context, *args, **kwargs):  # noqa: ANN001
     if identification["export_code"]:
         identify_cmd.append("--export-code")
 
-    actions = [
-        recorder,
-        RegisterEventHandler(
-            OnProcessExit(
-                target_action=recorder,
-                on_exit=[ExecuteProcess(cmd=identify_cmd, output="screen")],
-            )
-        ),
-    ]
-    trajectory_override = _arg(context, "trajectory_csv")
-    trajectory_csv = trajectory_override or trajectory["csv_path"]
+    identify_after_recording = RegisterEventHandler(
+        OnProcessExit(
+            target_action=recorder,
+            on_exit=[ExecuteProcess(cmd=identify_cmd, output="screen")],
+        )
+    )
+    send_actions = []
     if trajectory_csv and (trajectory_override or trajectory["enabled"]):
-        actions.append(
+        send_actions.append(
             TimerAction(
                 period=as_float(_arg(context, "send_delay_sec") or trajectory["send_delay_sec"], 1.0),
                 actions=[
@@ -102,6 +103,30 @@ def _setup(context, *args, **kwargs):  # noqa: ANN001
                 ],
             )
         )
+    generate_before_recording = _arg(context, "generate_trajectory").lower() == "true" or trajectory["generate_on_start"]
+    if generate_before_recording:
+        if not trajectory_csv:
+            raise ValueError("trajectory.csv_path or trajectory_csv launch argument is required when generate_trajectory is true.")
+        generate_cmd = [
+            "ros2",
+            "run",
+            "robotdynid_ros2",
+            "robotdynid-generate-excitation",
+            "--config",
+            config_path,
+            "--output",
+            trajectory_csv,
+        ]
+        if trajectory["validate_enabled"]:
+            generate_cmd.append("--validate")
+        generator = ExecuteProcess(cmd=generate_cmd, output="screen")
+        actions = [
+            generator,
+            RegisterEventHandler(OnProcessExit(target_action=generator, on_exit=[recorder] + send_actions)),
+            identify_after_recording,
+        ]
+    else:
+        actions = [recorder, identify_after_recording] + send_actions
     return actions
 
 
@@ -119,6 +144,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument("duration_sec", default_value=""),
             DeclareLaunchArgument("codegen_languages", default_value=""),
             DeclareLaunchArgument("trajectory_csv", default_value=""),
+            DeclareLaunchArgument("generate_trajectory", default_value="false"),
             DeclareLaunchArgument("send_delay_sec", default_value=""),
             OpaqueFunction(function=_setup),
         ]

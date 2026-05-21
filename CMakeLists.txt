@@ -22,8 +22,10 @@ install(
     scripts/robotdynid-export-runtime
     scripts/robotdynid-generate-excitation
     scripts/robotdynid-identify-codegen
+    scripts/robotdynid-preprocess-dataset
     scripts/robotdynid-send-trajectory
     scripts/robotdynid-validate-dataset
+    scripts/robotdynid-validate-excitation
   DESTINATION lib/${PROJECT_NAME}
 )
 

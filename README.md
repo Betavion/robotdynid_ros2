@@ -76,12 +76,55 @@ Generate and send the configured excitation trajectory while recording:
 
 ```bash
 ros2 run robotdynid_ros2 robotdynid-generate-excitation \
-  --config config/sia_example.yaml
+  --config config/sia_example.yaml \
+  --output runs/sia_excitation.csv \
+  --validate
+
+ros2 run robotdynid_ros2 robotdynid-validate-excitation \
+  --config config/sia_example.yaml \
+  --trajectory runs/sia_excitation.csv
 
 ros2 launch robotdynid_ros2 collect_with_trajectory.launch.py \
   config:=config/sia_example.yaml \
   trajectory_csv:=runs/sia_excitation.csv
 ```
+
+The generated trajectory CSV contains analytic position, velocity, and
+acceleration for every joint:
+
+```text
+time_from_start,
+joint1_position,joint1_velocity,joint1_acceleration,
+...
+```
+
+The generator scales amplitudes from URDF joint limits and can build the default
+`composite` profile:
+
+```text
+friction_sweep -> safe_multisine -> gravity_sweep
+```
+
+Before running on real hardware, start the SIA fake RTDE chain and do a dry run:
+
+```bash
+ros2 launch sia_moveit_config sia_arm.launch.py \
+  hardware_backend:=rtde_fake \
+  use_rviz:=false \
+  db:=false \
+  auto_motion_enable:=true
+
+ros2 run robotdynid_ros2 robotdynid-validate-excitation \
+  --config config/sia_example.yaml \
+  --trajectory runs/sia_excitation.csv \
+  --dry-run
+```
+
+If `move_group` is running, enable `trajectory.validate.collision` and set
+`trajectory.validate.moveit_group`; validation will query MoveIt's
+`/check_state_validity` service. If the service is not available, the report
+records that collision was not checked instead of claiming the path is
+collision-free.
 
 `follow_joint_trajectory` is not a sampled topic. It is only used by
 `robotdynid-send-trajectory` as an action client when you explicitly ask the
@@ -96,6 +139,19 @@ runs/<timestamp>/
   data/torque_measure_data.csv
   data/torque_estimate_data.csv  # only when estimate_joint_state_topic is set
 ```
+
+When a trajectory is sent through `collect_with_trajectory.launch.py`, the
+manifest records `collection.commanded_trajectory_csv`. The identification CLI
+then preprocesses split datasets before solving:
+
+- with a known generated trajectory, it estimates timing offset and fits
+  measured position to the commanded profile before using the analytic
+  trajectory derivatives;
+- if the fit is poor or no trajectory is available, it falls back to offline
+  Savitzky-Golay smoothing;
+- the preprocessed split dataset is written under
+  `runs/<timestamp>/identify/preprocess/` and carries explicit acceleration
+  columns.
 
 The recorder keeps callback work small: callbacks reorder the configured joints
 and enqueue samples, while a timer flushes CSV batches. This matches the useful

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 from pathlib import Path
 
 import rclpy
@@ -13,30 +12,31 @@ from rclpy.node import Node
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 from robotdynid_ros2.config import read_config, trajectory_config
+from robotdynid_ros2.trajectory.schema import TrajectoryData, read_trajectory_csv
 
 
 def _duration_from_seconds(seconds: float):
     from builtin_interfaces.msg import Duration
 
-    whole = int(seconds)
-    return Duration(sec=whole, nanosec=int((seconds - whole) * 1e9))
+    nanoseconds = int(round(seconds * 1e9))
+    return Duration(sec=nanoseconds // 1_000_000_000, nanosec=nanoseconds % 1_000_000_000)
+
+
+def trajectory_points_from_data(data: TrajectoryData) -> list[JointTrajectoryPoint]:
+    points: list[JointTrajectoryPoint] = []
+    for index, time_from_start in enumerate(data.time):
+        point = JointTrajectoryPoint()
+        point.positions = [float(value) for value in data.position[index]]
+        point.velocities = [float(value) for value in data.velocity[index]]
+        point.accelerations = [float(value) for value in data.acceleration[index]]
+        point.time_from_start = _duration_from_seconds(float(time_from_start))
+        points.append(point)
+    return points
 
 
 def _load_csv_trajectory(path: Path) -> tuple[list[str], list[JointTrajectoryPoint]]:
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        if reader.fieldnames is None or "time_from_start" not in reader.fieldnames:
-            raise ValueError("Trajectory CSV must contain a time_from_start column.")
-        joint_names = [name for name in reader.fieldnames if name != "time_from_start"]
-        points: list[JointTrajectoryPoint] = []
-        for row in reader:
-            point = JointTrajectoryPoint()
-            point.positions = [float(row[name]) for name in joint_names]
-            point.time_from_start = _duration_from_seconds(float(row["time_from_start"]))
-            points.append(point)
-    if not points:
-        raise ValueError("Trajectory CSV contains no points.")
-    return joint_names, points
+    data = read_trajectory_csv(path)
+    return list(data.joint_names), trajectory_points_from_data(data)
 
 
 class FollowJointTrajectoryCsvClient(Node):
