@@ -7,6 +7,7 @@ from pathlib import Path
 
 import rclpy
 from rclpy.node import Node
+from rclpy.parameter import Parameter
 from sensor_msgs.msg import JointState
 from std_srvs.srv import Trigger
 
@@ -18,6 +19,8 @@ from robotdynid_ros2.paths import timestamped_run_dir
 
 
 def _parse_joint_names(raw: object) -> list[str]:
+    if raw is None:
+        return []
     if isinstance(raw, str):
         stripped = raw.strip()
         if not stripped:
@@ -43,7 +46,7 @@ class DatasetRecorderNode(Node):
 
         self.declare_parameter("output_root", "runs")
         self.declare_parameter("run_name", "")
-        self.declare_parameter("joint_names", [])
+        self.declare_parameter("joint_names", Parameter.Type.STRING_ARRAY)
         self.declare_parameter("joint_state_topic", "/joint_states")
         self.declare_parameter("estimate_joint_state_topic", "")
         self.declare_parameter("commanded_trajectory_csv", "")

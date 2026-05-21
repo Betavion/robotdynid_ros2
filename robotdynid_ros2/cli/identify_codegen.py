@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 from pathlib import Path
 
@@ -99,6 +100,46 @@ def _resolve_inputs(
     return Path(urdf_raw).expanduser(), dof, csv_path, motion_csv, torque_csv, output_dir
 
 
+def _median_sample_period(csv_path: Path | None) -> float | None:
+    if csv_path is None or not csv_path.exists():
+        return None
+    timestamps: list[float] = []
+    with csv_path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if "timestamp" not in (reader.fieldnames or []):
+            return None
+        for row in reader:
+            try:
+                timestamps.append(float(row["timestamp"]))
+            except (KeyError, TypeError, ValueError):
+                continue
+    if len(timestamps) < 2:
+        return None
+    deltas = np.diff(np.asarray(timestamps, dtype=float))
+    deltas = deltas[np.isfinite(deltas) & (deltas > 0.0)]
+    if deltas.size == 0:
+        return None
+    return float(np.median(deltas))
+
+
+def _resolve_prediction_plot_stride(
+    *,
+    args: argparse.Namespace,
+    config_values: dict[str, object],
+    motion_csv: Path | None,
+    identification_stride: int,
+) -> int:
+    explicit_stride = _pick(args.prediction_plot_stride, config_values["prediction_plot_stride"])
+    if int(explicit_stride) > 0:
+        return int(explicit_stride)
+    sample_period = _median_sample_period(motion_csv)
+    rate_hz = float(config_values["prediction_plot_rate_hz"])
+    if sample_period is None or sample_period <= 0.0 or rate_hz <= 0.0:
+        return 1
+    effective_period = sample_period * max(int(identification_stride), 1)
+    return max(1, int(round((1.0 / rate_hz) / effective_period)))
+
+
 def main() -> None:
     args = parse_args()
     raw_config = read_config(args.config)
@@ -128,6 +169,13 @@ def main() -> None:
         motion_csv = Path(str(preprocess_report["output"]["motion_csv"]))
         torque_csv = Path(str(preprocess_report["output"]["torque_csv"]))
 
+    identification_stride = int(_pick(args.stride, config_values["stride"]))
+    prediction_plot_stride = _resolve_prediction_plot_stride(
+        args=args,
+        config_values=config_values,
+        motion_csv=motion_csv,
+        identification_stride=identification_stride,
+    )
     export_code = bool(config_values["export_code"]) if args.export_code is None else args.export_code
     save_prediction_plot = bool(config_values["save_prediction_plot"]) and not args.no_plot
     payload = run_identification_workflow(
@@ -137,7 +185,7 @@ def main() -> None:
             csv_path=csv_path,
             motion_csv_path=motion_csv,
             torque_csv_path=torque_csv,
-            stride=int(_pick(args.stride, config_values["stride"])),
+            stride=identification_stride,
             max_samples=int(_pick(args.max_samples, config_values["max_samples"])),
             selection_samples=int(_pick(args.selection_samples, config_values["selection_samples"])),
             selection_source=str(_pick(args.selection_source, config_values["selection_source"])),
@@ -155,7 +203,7 @@ def main() -> None:
             codegen_output_subdir=_pick_text(args.codegen_output_subdir, str(config_values["codegen_output_subdir"])),
             codegen_namespace=_pick_text(args.codegen_namespace, str(config_values["codegen_namespace"])),
             codegen_class_name=_pick_text(args.codegen_class_name, str(config_values["codegen_class_name"])),
-            prediction_plot_stride=int(_pick(args.prediction_plot_stride, config_values["prediction_plot_stride"])),
+            prediction_plot_stride=prediction_plot_stride,
             save_prediction_plot=save_prediction_plot,
         )
     )

@@ -105,7 +105,36 @@ The generator scales amplitudes from URDF joint limits and can build the default
 friction_sweep -> safe_multisine -> gravity_sweep
 ```
 
-Before running on real hardware, start the SIA fake RTDE chain and do a dry run:
+If the full URDF range contains self-collision regions, configure a narrower
+excitation workspace under `trajectory.generation`. These limits are in radians,
+use the configured joint order, and are intersected with the URDF hard limits:
+
+```yaml
+trajectory:
+  generation:
+    position_lower: [-1.0, -1.1, -0.8, -0.3, -1.0, -0.8]
+    position_upper: [ 1.0,  1.1,  0.8,  0.3,  1.0,  0.8]
+```
+
+Acceleration limits are read from the optional URDF `limit acceleration`
+attribute unless `trajectory.generation.acceleration_limits` explicitly
+overrides them. The multisine selector reports velocity, acceleration,
+aperiodicity, and combined dynamic utilization. It searches common, per-joint
+adaptive, and lightly detuned frequency sets. Detuned candidates use
+Schroeder-style phases when useful to reduce crest factor and avoid visually
+repeating cycles while keeping analytic position, velocity, and acceleration.
+The default composite profile keeps dedicated friction and gravity content:
+friction uses smooth multi-level velocity sweeps with positive and negative
+low/mid-speed samples, gravity uses quasi-static pose sweeps with zero-velocity
+dwell points, and two detuned multisine packets provide inertial excitation.
+Use `trajectory.generation.friction_speed_levels` to set the number of friction
+velocity levels, and `trajectory.generation.gravity_pose_count` to set the
+number of quasi-static gravity poses.
+
+Before running on real hardware, start the SIA fake RTDE chain and run
+collision/state validation. This validation samples the trajectory and queries
+MoveIt's `/check_state_validity` service; it does not publish `/joint_states`
+and does not send a controller goal:
 
 ```bash
 ros2 launch sia_moveit_config sia_arm.launch.py \
@@ -117,7 +146,7 @@ ros2 launch sia_moveit_config sia_arm.launch.py \
 ros2 run robotdynid_ros2 robotdynid-validate-excitation \
   --config config/sia_example.yaml \
   --trajectory runs/sia_excitation.csv \
-  --dry-run
+  --require-collision
 ```
 
 If `move_group` is running, enable `trajectory.validate.collision` and set
@@ -125,6 +154,23 @@ If `move_group` is running, enable `trajectory.validate.collision` and set
 `/check_state_validity` service. If the service is not available, the report
 records that collision was not checked instead of claiming the path is
 collision-free.
+
+For RViz-only trajectory preview, publish a MoveIt DisplayTrajectory message.
+This does not publish `/joint_states`, does not wait for robot state feedback,
+and does not send a controller action goal:
+
+```bash
+ros2 run robotdynid_ros2 robotdynid-preview-trajectory \
+  --config config/sia_example.yaml \
+  --trajectory runs/sia_excitation.csv
+```
+
+In RViz, use the MoveIt MotionPlanning display subscribed to
+`/display_planned_path`.
+
+The `--dry-run` option is an explicit controller-send test: after validation it
+sends the trajectory to the configured `FollowJointTrajectory` action. Only use
+it when the active action server is known to be a fake/simulation controller.
 
 `follow_joint_trajectory` is not a sampled topic. It is only used by
 `robotdynid-send-trajectory` as an action client when you explicitly ask the
@@ -191,3 +237,30 @@ ros2 run robotdynid_ros2 robotdynid-export-runtime \
 This copies the generated `predict_tau` C++ kernel and writes an
 `identified_params.hpp` header with fixed `linear_parameters` and
 `stribeck_parameters` arrays.
+
+## GUI
+
+`robotdynid_ros2` also provides a PySide6 desktop GUI for the same configured
+workflow. The GUI is intentionally a thin workflow layer over the existing
+CLI/launch entries: it edits the YAML config, runs the same commands through
+Qt processes, previews CSV/plot artifacts, and scans timestamped `runs/`
+directories.
+
+Install the optional GUI packages in the workspace Python environment:
+
+```bash
+/home/betavion/work/siaupper_ros2/venv/bin/python -m pip install -r src/robotdynid_ros2/requirements-gui.txt
+```
+
+Launch from a sourced workspace:
+
+```bash
+ros2 run robotdynid_ros2 robotdynid-gui \
+  --config src/robotdynid_ros2/config/sia_example.yaml \
+  --workspace /home/betavion/work/siaupper_ros2 \
+  --language zh
+```
+
+The GUI pages follow the normal workflow: load the robot config, generate and
+validate an excitation trajectory, collect a dataset, run identification/codegen,
+export the runtime kernel, and browse historical run artifacts.

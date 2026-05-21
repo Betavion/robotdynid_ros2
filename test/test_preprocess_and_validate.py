@@ -22,13 +22,13 @@ def _write_two_joint_urdf(path: Path) -> None:
     <parent link="base"/>
     <child link="l1"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-1.0" upper="1.0" velocity="2.0" effort="20.0"/>
+    <limit lower="-1.0" upper="1.0" velocity="2.0" effort="20.0" acceleration="2.0"/>
   </joint>
   <joint name="j2" type="revolute">
     <parent link="l1"/>
     <child link="l2"/>
     <axis xyz="0 1 0"/>
-    <limit lower="-1.5" upper="1.5" velocity="2.0" effort="20.0"/>
+    <limit lower="-1.5" upper="1.5" velocity="2.0" effort="20.0" acceleration="2.0"/>
   </joint>
 </robot>
 """,
@@ -58,7 +58,9 @@ def test_urdf_scaled_excitation_validates(tmp_path: Path) -> None:
         transition_duration=1.0,
         center=(0.0, 0.0),
         home_position=(0.0, 0.0),
-        acceleration_limits=(4.0, 4.0),
+        position_lower=None,
+        position_upper=None,
+        acceleration_limits=None,
         score_regressor=False,
         score_sample_limit=20,
     )
@@ -72,7 +74,7 @@ def test_urdf_scaled_excitation_validates(tmp_path: Path) -> None:
                 "generation": {
                     "velocity_scale": 0.5,
                     "acceleration_scale": 0.5,
-                    "acceleration_limits": [4.0, 4.0],
+                    "acceleration_limits": [],
                 }
             },
         },
@@ -80,8 +82,11 @@ def test_urdf_scaled_excitation_validates(tmp_path: Path) -> None:
 
     assert data.dof == 2
     assert report["sample_count"] == data.sample_count
+    assert report["limits"]["acceleration_limit"] == [1.0, 1.0]
     assert validation["valid"] is True
-    assert [limit.name for limit in parse_urdf_joint_limits(urdf)] == ["j1", "j2"]
+    limits = parse_urdf_joint_limits(urdf)
+    assert [limit.name for limit in limits] == ["j1", "j2"]
+    assert [limit.acceleration for limit in limits] == [2.0, 2.0]
 
 
 def test_preprocess_uses_fitted_command_acceleration(tmp_path: Path) -> None:

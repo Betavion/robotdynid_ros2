@@ -11,8 +11,14 @@ from typing import Any
 import numpy as np
 
 from robotdynid_ros2.config import read_config, trajectory_config
-from robotdynid_ros2.trajectory.schema import TrajectoryData, read_trajectory_csv
-from robotdynid_ros2.trajectory.urdf_limits import JointLimit, finite_or_default, parse_urdf_joint_limits, resolve_vector
+from robotdynid_ros2.trajectory.schema import TIME_COLUMN, TIME_UNIT, TRAJECTORY_UNITS, TrajectoryData, read_trajectory_csv
+from robotdynid_ros2.trajectory.urdf_limits import (
+    JointLimit,
+    apply_position_bounds,
+    finite_or_default,
+    parse_urdf_joint_limits,
+    resolve_vector,
+)
 
 
 def _trajectory_validation_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -30,7 +36,8 @@ def _trajectory_validation_config(config: dict[str, Any]) -> dict[str, Any]:
         "torque": bool(validate.get("torque", False)),
         "max_torque_scale": float(validate.get("max_torque_scale", 1.0)),
         "torque_sample_limit": int(validate.get("torque_sample_limit", 200)),
-        "dry_run": bool(validate.get("dry_run", False)),
+        "position_lower": values["position_lower"],
+        "position_upper": values["position_upper"],
     }
 
 
@@ -50,7 +57,7 @@ def _check_limits(data: TrajectoryData, limits: list[JointLimit], config: dict[s
     errors: list[str] = []
     acceleration_limits = resolve_vector(config["acceleration_limits"], data.dof)
     if acceleration_limits is None:
-        acceleration_limits = [finite_or_default(limit.velocity, 1.0) * 2.0 for limit in limits]
+        acceleration_limits = [finite_or_default(limit.acceleration, finite_or_default(limit.velocity, 1.0) * 2.0) for limit in limits]
     velocity_scale = float(config["velocity_scale"])
     acceleration_scale = float(config["acceleration_scale"])
     joint_reports: dict[str, dict[str, float | None]] = {}
@@ -190,7 +197,10 @@ def validate_trajectory_data(data: TrajectoryData, config: dict[str, Any]) -> di
         errors.append("robot.urdf_path is required for trajectory validation.")
         limits: list[JointLimit] = []
     else:
-        limits = parse_urdf_joint_limits(values["urdf_path"], data.joint_names)
+        urdf_limits = parse_urdf_joint_limits(values["urdf_path"], data.joint_names)
+        position_lower = resolve_vector(values["position_lower"], data.dof)
+        position_upper = resolve_vector(values["position_upper"], data.dof)
+        limits = apply_position_bounds(urdf_limits, position_lower, position_upper)
 
     limit_report: dict[str, Any] = {}
     torque_report: dict[str, Any] = {"enabled": False}
@@ -209,6 +219,7 @@ def validate_trajectory_data(data: TrajectoryData, config: dict[str, Any]) -> di
         "valid": not errors,
         "errors": errors,
         "warnings": warnings,
+        "units": {TIME_COLUMN: TIME_UNIT, **TRAJECTORY_UNITS},
         "trajectory": {
             "joint_names": list(data.joint_names),
             "time": _check_time(data),
@@ -234,8 +245,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--trajectory", required=True, help="Trajectory CSV to validate.")
     parser.add_argument("--output", default="", help="Validation report path. Defaults to <trajectory>_validation.json.")
     parser.add_argument("--require-collision", action="store_true", help="Fail when MoveIt collision service is unavailable.")
-    parser.add_argument("--dry-run", action="store_true", help="Send the trajectory after validation, normally against fake hardware.")
-    parser.add_argument("--action-name", default="", help="FollowJointTrajectory action name for --dry-run.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Explicitly send the trajectory to the configured FollowJointTrajectory action after validation.",
+    )
+    parser.add_argument("--action-name", default="", help="FollowJointTrajectory action name for explicit --dry-run.")
     return parser.parse_args()
 
 
@@ -247,8 +262,7 @@ def main() -> None:
         config["trajectory"]["validate"]["collision"] = True
     report = validate_trajectory_file(args.trajectory, config=config)
     values = _trajectory_validation_config(config)
-    dry_run = args.dry_run or values["dry_run"]
-    if report["valid"] and dry_run:
+    if report["valid"] and args.dry_run:
         from robotdynid_ros2.trajectory.follow_joint_trajectory_client import FollowJointTrajectoryCsvClient, _load_csv_trajectory
 
         import rclpy

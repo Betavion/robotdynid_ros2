@@ -17,6 +17,7 @@ class JointLimit:
     upper: float | None
     velocity: float | None
     effort: float | None
+    acceleration: float | None = None
 
     @property
     def has_position_limits(self) -> bool:
@@ -51,16 +52,25 @@ def parse_urdf_joint_limits(urdf_path: str | Path, joint_names: list[str] | tupl
         if requested_set and name not in requested_set:
             continue
         limit = joint.find("limit")
-        lower = upper = velocity = effort = None
+        lower = upper = velocity = effort = acceleration = None
         if limit is not None:
             lower = float(limit.attrib["lower"]) if "lower" in limit.attrib else None
             upper = float(limit.attrib["upper"]) if "upper" in limit.attrib else None
             velocity = float(limit.attrib["velocity"]) if "velocity" in limit.attrib else None
             effort = float(limit.attrib["effort"]) if "effort" in limit.attrib else None
+            acceleration = float(limit.attrib["acceleration"]) if "acceleration" in limit.attrib else None
         if joint_type == "continuous":
             lower = None
             upper = None
-        found[name] = JointLimit(name=name, joint_type=joint_type, lower=lower, upper=upper, velocity=velocity, effort=effort)
+        found[name] = JointLimit(
+            name=name,
+            joint_type=joint_type,
+            lower=lower,
+            upper=upper,
+            velocity=velocity,
+            effort=effort,
+            acceleration=acceleration,
+        )
 
     if requested:
         missing = [name for name in requested if name not in found]
@@ -68,6 +78,46 @@ def parse_urdf_joint_limits(urdf_path: str | Path, joint_names: list[str] | tupl
             raise ValueError(f"URDF is missing movable joints: {missing}")
         return [found[name] for name in requested]
     return list(found.values())
+
+
+def apply_position_bounds(
+    limits: list[JointLimit],
+    lower_bounds: list[float] | tuple[float, ...] | None,
+    upper_bounds: list[float] | tuple[float, ...] | None,
+) -> list[JointLimit]:
+    """Intersect URDF limits with an optional excitation workspace."""
+
+    if lower_bounds is None and upper_bounds is None:
+        return limits
+    if lower_bounds is not None and len(lower_bounds) != len(limits):
+        raise ValueError(f"Expected {len(limits)} lower position bounds, got {len(lower_bounds)}.")
+    if upper_bounds is not None and len(upper_bounds) != len(limits):
+        raise ValueError(f"Expected {len(limits)} upper position bounds, got {len(upper_bounds)}.")
+
+    bounded: list[JointLimit] = []
+    for index, limit in enumerate(limits):
+        lower = limit.lower
+        upper = limit.upper
+        if lower_bounds is not None:
+            configured = float(lower_bounds[index])
+            lower = configured if lower is None else max(lower, configured)
+        if upper_bounds is not None:
+            configured = float(upper_bounds[index])
+            upper = configured if upper is None else min(upper, configured)
+        if lower is not None and upper is not None and lower >= upper:
+            raise ValueError(f"Configured position bounds for {limit.name} are empty: lower={lower}, upper={upper}.")
+        bounded.append(
+            JointLimit(
+                name=limit.name,
+                joint_type=limit.joint_type,
+                lower=lower,
+                upper=upper,
+                velocity=limit.velocity,
+                effort=limit.effort,
+                acceleration=limit.acceleration,
+            )
+        )
+    return bounded
 
 
 def resolve_vector(raw: object, size: int, *, default: float | None = None) -> list[float] | None:

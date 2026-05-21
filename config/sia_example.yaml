@@ -1,14 +1,20 @@
 robot:
   urdf_path: examples/sia/sia_v3_urdf.urdf
   dof: 6
-  joint_names: [joint1, joint2, joint3, joint4, joint5, joint6]
-
+  joint_names:
+  - joint1
+  - joint2
+  - joint3
+  - joint4
+  - joint5
+  - joint6
 recording:
+  commanded_trajectory_csv: runs/sia_excitation.csv
   joint_state_topic: /joint_state_broadcaster/joint_states
   estimate_joint_state_topic: /joint_states
-  duration_sec: 30.0
+  duration_sec: 240.0
   shutdown_on_finish: true
-
+  flush_period_sec: 0.01
 trajectory:
   enabled: true
   action_name: /joint_trajectory_controller/follow_joint_trajectory
@@ -16,18 +22,54 @@ trajectory:
   send_delay_sec: 2.0
   generation:
     profile: composite
-    duration: 60.0
+    duration: 240.0
     sample_period: 0.01
     harmonics: 5
-    home_position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    center: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    acceleration_limits: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
-    search_candidates: 8
+    base_frequency: 0.1
+    home_position:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    center:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    position_lower:
+    - -3.0
+    - -0.7
+    - -0.6
+    - -1.57
+    - -1.5
+    - -3.14
+    position_upper:
+    - 3.0
+    - 1.57
+    - 1.57
+    - 1.57
+    - 1.5
+    - 3.14
+    acceleration_limits: []
+    search_candidates: 32
+    friction_speed_levels: 8
+    gravity_pose_count: 16
+    velocity_scale: 0.8
+    acceleration_scale: 0.9
   validate:
     enabled: true
-    collision: false
+    collision: true
+    require_collision: true
+    state_validity_service: /check_state_validity
     moveit_group: sia_arm
-
+    collision_sample_limit: 4800
+    torque: false
+    torque_sample_limit: 200
+    max_torque_scale: 0.8
 preprocessing:
   enabled: true
   acceleration_source: fitted
@@ -42,13 +84,21 @@ preprocessing:
     method: savgol
     window_sec: 0.15
     poly_order: 3
-
 identification:
-  stride: 50
-  max_samples: 1200
+  stride: 10
+  max_samples: 4800
   selection_samples: 400
   chunk_size: 200
-
+  prediction_plot_rate_hz: 10.0
 codegen:
   export_code: true
-  languages: [c, cpp]
+  languages:
+  - c
+  - cpp
+run:
+  output_root: runs
+export_runtime:
+  run_dir: ''
+  target_root: ''
+  namespace: robotdynid::generated
+  class_name: RegressorKernel

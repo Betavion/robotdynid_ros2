@@ -19,10 +19,13 @@ install(
   PROGRAMS
     scripts/dataset_recorder
     scripts/robotdynid-bag-to-csv
+    scripts/robotdynid-cancel-trajectory
     scripts/robotdynid-export-runtime
+    scripts/robotdynid-gui
     scripts/robotdynid-generate-excitation
     scripts/robotdynid-identify-codegen
     scripts/robotdynid-preprocess-dataset
+    scripts/robotdynid-preview-trajectory
     scripts/robotdynid-send-trajectory
     scripts/robotdynid-validate-dataset
     scripts/robotdynid-validate-excitation

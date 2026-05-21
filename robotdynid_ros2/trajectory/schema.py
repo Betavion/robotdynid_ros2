@@ -10,10 +10,16 @@ import numpy as np
 
 
 TIME_COLUMN = "time_from_start"
+TIME_UNIT = "s"
 POSITION_SUFFIX = "position"
 VELOCITY_SUFFIX = "velocity"
 ACCELERATION_SUFFIX = "acceleration"
 TRAJECTORY_SUFFIXES = (POSITION_SUFFIX, VELOCITY_SUFFIX, ACCELERATION_SUFFIX)
+TRAJECTORY_UNITS = {
+    POSITION_SUFFIX: "rad",
+    VELOCITY_SUFFIX: "rad/s",
+    ACCELERATION_SUFFIX: "rad/s^2",
+}
 
 
 @dataclass(frozen=True)

@@ -97,10 +97,11 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-2.5"
-      upper="2.5"
-      effort="10.0"
-      velocity="5.1" />
+      lower="-3.141592653589793"
+      upper="3.141592653589793"
+      effort="8.0"
+      velocity="5.0"
+      acceleration="2.0" />
   </joint>
   <link
     name="link2">
@@ -155,10 +156,11 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-3.2"
-      upper="3.2"
-      effort="10.0"
-      velocity="5.1" />
+      lower="-1.5707963267948966"
+      upper="1.5707963267948966"
+      effort="20.0"
+      velocity="5.0"
+      acceleration="2.0" />
   </joint>
   <link
     name="link3">
@@ -213,10 +215,11 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-1.6"
-      upper="2.0"
-      effort="10.0"
-      velocity="5.1" />
+      lower="-1.5707963267948966"
+      upper="1.5707963267948966"
+      effort="20.0"
+      velocity="5.0"
+      acceleration="2.0" />
   </joint>
   <link
     name="link4">
@@ -271,10 +274,11 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-0.5"
-      upper="3.2"
+      lower="-2.0943951023931953"
+      upper="2.0943951023931953"
       effort="4.0"
-      velocity="20.1" />
+      velocity="20.0"
+      acceleration="2.0" />
   </joint>
   <link
     name="link5">
@@ -329,10 +333,11 @@
     <axis
       xyz="0 0 -1" />
     <limit
-      lower="-3.2"
-      upper="3.2"
+      lower="-1.5707963267948966"
+      upper="1.5707963267948966"
       effort="4.0"
-      velocity="20.1" />
+      velocity="20.0"
+      acceleration="2.0" />
   </joint>
   <link
     name="link6">
@@ -387,10 +392,11 @@
     <axis
       xyz="0 0 1" />
     <limit
-      lower="-6.3"
-      upper="1.0"
+      lower="-6.283185307179586"
+      upper="6.283185307179586"
       effort="4.0"
-      velocity="20.1" />
+      velocity="20.0"
+      acceleration="2.0" />
   </joint>
   <link
     name="tool">
