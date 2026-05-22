@@ -63,13 +63,13 @@ class ExportPage(QWidget):
         self.set_language(self._language)
 
     def load_from_model(self, model: GuiConfigModel) -> None:
-        values = model.export_values()
         self.run_dir.clear()
-        self.target_root.setText(str(values["target_root"]))
+        self.target_root.clear()
 
     def apply_to_model(self, model: GuiConfigModel) -> None:
-        model.ensure_section("export_runtime").pop("run_dir", None)
-        model.set_value("export_runtime", "target_root", self.target_root.text().strip())
+        export = model.ensure_section("export_runtime")
+        export.pop("run_dir", None)
+        export.pop("target_root", None)
 
     def run_dir_path(self) -> Path:
         return Path(self.run_dir.text().strip()).expanduser()

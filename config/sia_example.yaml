@@ -106,7 +106,6 @@ codegen:
 run:
   output_root: runs
 export_runtime:
-  target_root: ''
   runtime_subdir: runtime/robotdynid
   namespace: robotdynid::generated
   class_name: RegressorKernel

@@ -110,6 +110,8 @@ trajectory:
         window.excitation_page.gravity_pose_count.setValue(6)
         window.collect_page.trajectory_csv.setText("runs/manual_excitation.csv")
         window.identify_page.manifest.setText("runs/manual/manifest.yaml")
+        window.export_page.run_dir.setText("runs/manual/identify")
+        window.export_page.target_root.setText(str(tmp_path / "src" / "controller"))
         window.excitation_page.collision_sample_limit.setValue(5678)
         window._save_config()
     finally:
@@ -123,6 +125,8 @@ trajectory:
     assert "gravity_pose_count: 6" in saved
     assert "commanded_trajectory_csv: runs/manual_excitation.csv" in saved
     assert "manifest:" not in saved
+    assert "run_dir:" not in saved
+    assert "target_root:" not in saved
     assert "- -0.2" in saved
     assert "- 0.3" in saved
     assert "dry_run:" not in saved
