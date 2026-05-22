@@ -271,3 +271,7 @@ ros2 run robotdynid_ros2 robotdynid-gui \
 The GUI pages follow the normal workflow: load the robot config, generate and
 validate an excitation trajectory, collect a dataset, run identification/codegen,
 export the runtime kernel, and browse historical run artifacts.
+
+## License
+
+MPL-2.0
