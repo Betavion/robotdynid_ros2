@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPen
-from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 
 class LogoMark(QWidget):
@@ -46,13 +46,16 @@ class PageHeader(QWidget):
 
     def __init__(self, title: str, subtitle: str = "", parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 2)
         layout.setSpacing(3)
         self.title = QLabel(title)
         self.title.setObjectName("PageTitle")
+        self.title.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.subtitle = QLabel(subtitle)
         self.subtitle.setObjectName("PageSubtitle")
+        self.subtitle.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.subtitle.setWordWrap(True)
         layout.addWidget(self.title)
         layout.addWidget(self.subtitle)
@@ -89,6 +92,8 @@ def make_panel(title: str, subtitle: str = "") -> tuple[QFrame, QVBoxLayout, Pan
     subtitle_label.setVisible(bool(subtitle))
     layout.addWidget(title_label)
     layout.addWidget(subtitle_label)
+    title_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+    subtitle_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
     return frame, layout, PanelTitle(title_label, subtitle_label)
 
 

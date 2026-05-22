@@ -64,11 +64,11 @@ class ExportPage(QWidget):
 
     def load_from_model(self, model: GuiConfigModel) -> None:
         values = model.export_values()
-        self.run_dir.setText(str(values["run_dir"]))
+        self.run_dir.clear()
         self.target_root.setText(str(values["target_root"]))
 
     def apply_to_model(self, model: GuiConfigModel) -> None:
-        model.set_value("export_runtime", "run_dir", self.run_dir.text().strip())
+        model.ensure_section("export_runtime").pop("run_dir", None)
         model.set_value("export_runtime", "target_root", self.target_root.text().strip())
 
     def run_dir_path(self) -> Path:
@@ -83,6 +83,8 @@ class ExportPage(QWidget):
         self.runtime_panel_title.set_text(tr(language, "runtime_kernel"), tr(language, "runtime_kernel_subtitle"))
         self.run_dir_label.setText(tr(language, "identify_dir"))
         self.target_root_label.setText(tr(language, "target_root"))
+        self.run_dir.setPlaceholderText(tr(language, "identify_dir_placeholder"))
+        self.target_root.setPlaceholderText(tr(language, "target_root_placeholder"))
         self.browse_run_dir_button.setText(tr(language, "browse"))
         self.browse_target_root_button.setText(tr(language, "browse"))
         self.export_button.setText(tr(language, "export_runtime"))

@@ -372,6 +372,7 @@ recording:
     plotted: list[tuple[str, list[str]]] = []
     monkeypatch.setattr(window.collect_page.preview, "plot_columns", lambda path, columns: plotted.append((str(path), columns)))
     try:
+        window._append_log("[dataset_recorder-1] Recording robot dynamics dataset into runs/20260521_221500\n")
         window._on_process_finished(ProcessRecord("Collect dataset", "cmd", exit_code=0))
     finally:
         window.close()
@@ -380,6 +381,83 @@ recording:
     assert window.identify_page.manifest.text() == str(manifest_path)
     assert window.collect_page.preview_path.text() == str(motion)
     assert plotted == [(str(motion), ["joint1_position", "joint2_position"])]
+
+
+def test_collect_finish_selects_reported_run_not_sorted_history(tmp_path: Path) -> None:
+    pytest.importorskip("PySide6")
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+    from PySide6.QtWidgets import QApplication
+
+    from robotdynid_ros2.data.manifest import build_collection_manifest, write_manifest
+    from robotdynid_ros2.gui.app import parse_args
+    from robotdynid_ros2.gui.main_window import MainWindow
+    from robotdynid_ros2.gui.process_runner import ProcessRecord
+
+    def write_run_manifest(name: str) -> Path:
+        run_dir = tmp_path / "runs" / name
+        data_dir = run_dir / "data"
+        data_dir.mkdir(parents=True)
+        motion = data_dir / "motion.csv"
+        torque = data_dir / "torque_measure_data.csv"
+        motion.write_text("timestamp,joint1_position\n0,0\n", encoding="utf-8")
+        torque.write_text("timestamp,joint1_measure\n0,0\n", encoding="utf-8")
+        return write_manifest(
+            run_dir / "manifest.yaml",
+            build_collection_manifest(
+                run_dir=run_dir,
+                data_dir=data_dir,
+                motion_csv=motion,
+                torque_csv=torque,
+                joint_names=["joint1"],
+                joint_state_topic="/joint_states",
+                sample_count=1,
+            ),
+        )
+
+    stale_manifest = write_run_manifest("test_run")
+    reported_manifest = write_run_manifest("20260522_174854")
+    config = tmp_path / "config.yaml"
+    urdf = tmp_path / "robot.urdf"
+    urdf.write_text("<robot name='r' />", encoding="utf-8")
+    config.write_text(
+        f"""
+robot:
+  urdf_path: {urdf}
+  dof: 1
+  joint_names: [joint1]
+run:
+  output_root: runs
+trajectory:
+  csv_path: runs/generated.csv
+recording:
+  joint_state_topic: /joint_states
+""",
+        encoding="utf-8",
+    )
+
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(
+        parse_args(
+            [
+                "--config",
+                str(config),
+                "--workspace",
+                str(tmp_path),
+                "--no-ros-monitor",
+            ]
+        )
+    )
+    try:
+        window._append_log("[dataset_recorder-1] Recording robot dynamics dataset into runs/20260522_174854\n")
+        window._on_process_finished(ProcessRecord("Collect dataset", "cmd", exit_code=-15))
+    finally:
+        window.close()
+        app.processEvents()
+
+    assert stale_manifest.exists()
+    assert window.identify_page.manifest.text() == str(reported_manifest)
+    assert window.active_run_field.text() == "20260522_174854"
 
 
 def test_identify_finish_loads_prediction_plot(tmp_path: Path) -> None:

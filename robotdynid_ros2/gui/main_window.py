@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 from PySide6.QtCore import QProcess, QSize, QUrl, Qt
@@ -64,6 +65,7 @@ class MainWindow(QMainWindow):
         self.monitor = RosGraphMonitor() if not args.no_ros_monitor else None
         self.language = normalize_language(getattr(args, "language", "en"))
         self._active_run: Path | None = None
+        self._last_collected_run: Path | None = None
         self._last_trajectory: Path | None = None
         self._summary_status_keys: dict[str, str] = {}
 
@@ -515,9 +517,16 @@ class MainWindow(QMainWindow):
     def _on_process_started(self, record: ProcessRecord) -> None:
         self.summary_labels["run"].setText(f"Running: {record.label}")
         self.active_run_field.setText(record.label)
+        if record.label == "Collect dataset":
+            self._last_collected_run = None
 
     def _on_process_finished(self, record: ProcessRecord) -> None:
+        output_root = self.model.robot_summary().output_root if self.model.is_loaded() else "runs"
         if record.exit_code not in (0, None) or record.failed_to_start:
+            if record.label == "Collect dataset" and self._select_collected_run(output_root):
+                self.summary_labels["run"].setText(str(self._active_run))
+                self.runs_page.refresh(str(self._workspace_path(output_root)))
+                return
             self.summary_labels["run"].setText(f"Failed: {record.label}")
             return
         self.summary_labels["run"].setText(f"Done: {record.label}")
@@ -531,23 +540,32 @@ class MainWindow(QMainWindow):
             report = self._last_trajectory.with_name("excitation_validation.json")
             self._set_status_key("validation", "status_ok" if report.exists() else "status_done", "ok")
             self.artifact_report.setText(str(report.name))
-        output_root = self.model.robot_summary().output_root if self.model.is_loaded() else "runs"
         if record.label == "Collect dataset":
-            self._select_latest_collected_run(output_root)
+            self._select_collected_run(output_root)
         if record.label == "Identify and codegen":
-            self._select_identified_run()
+            self._select_identified_run(output_root)
         self.runs_page.refresh(str(self._workspace_path(output_root)))
 
-    def _select_latest_collected_run(self, output_root: str) -> None:
-        for run in scan_runs(self._workspace_path(output_root)):
+    def _select_collected_run(self, output_root: str) -> bool:
+        del output_root
+        if self._last_collected_run is not None:
+            run = inspect_run(self._last_collected_run)
             if run.manifest_path is not None:
                 self._on_run_selected(run)
-                return
+                return True
+        return False
 
-    def _select_identified_run(self) -> None:
+    def _select_identified_run(self, output_root: str) -> None:
         manifest = self.identify_page.manifest_path()
         if manifest is not None and manifest.exists():
-            self._on_run_selected(inspect_run(manifest.parent))
+            run = inspect_run(manifest.parent)
+            if run.has_identification:
+                self._on_run_selected(run)
+                return
+        for run in scan_runs(self._workspace_path(output_root)):
+            if run.has_identification:
+                self._on_run_selected(run)
+                return
 
     def _on_run_selected(self, run: RunArtifacts) -> None:
         self._active_run = run.run_dir
@@ -687,9 +705,15 @@ class MainWindow(QMainWindow):
         widget.style().polish(widget)
 
     def _append_log(self, text: str) -> None:
+        self._capture_collection_run_dir(text)
         self.log_view.moveCursor(QTextCursor.MoveOperation.End)
         self.log_view.insertPlainText(text)
         self.log_view.moveCursor(QTextCursor.MoveOperation.End)
+
+    def _capture_collection_run_dir(self, text: str) -> None:
+        pattern = r"(?:Recording robot dynamics dataset into|Stopped recording \d+ samples into)\s+([^\s]+)"
+        for match in re.finditer(pattern, text):
+            self._last_collected_run = self._workspace_path(match.group(1))
 
     def _open_active_run(self) -> None:
         path = self._active_run

@@ -52,8 +52,6 @@ class ExcitationPage(QWidget):
         super().__init__()
         self._language = "en"
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
         self.header = PageHeader("", "")
         layout.addWidget(self.header)
 
@@ -74,6 +72,7 @@ class ExcitationPage(QWidget):
         robot_layout.addWidget(self.robot_dof)
         robot_layout.addWidget(self.robot_joint_order_label)
         robot_layout.addWidget(self.robot_joints)
+        robot_layout.addStretch(1)
         top_row.addWidget(robot_panel, 1)
 
         settings_panel, settings_layout, self.settings_panel_title = make_panel("", "")
@@ -219,6 +218,7 @@ class ExcitationPage(QWidget):
         self.tabs.addTab(self.acceleration_plot, "")
         preview_layout.addWidget(self.tabs)
         layout.addWidget(preview_panel)
+        layout.addStretch(1)
         self.set_language(self._language)
 
     def load_from_model(self, model: GuiConfigModel) -> None:
