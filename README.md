@@ -217,6 +217,11 @@ provided. The main artifacts are `identify_result.json`,
 `identified_linear_parameters.csv`, `identified_stribeck_parameters.csv`,
 `base_metadata.json`, `prediction.png`, and `codegen/<language>/`.
 
+The optimizer supports diagonal measurement covariance weighting, Gaussian
+prior/Tikhonov regularization for BIP + joint-dynamics linear parameters, and
+robust losses for noisy datasets. The formulas and tuning guidance are recorded
+in `robotdynid/docs/identification_optimization_theory.md`.
+
 The complete collection and identification flow can also be launched from one
 configured entry point:
 
@@ -234,9 +239,11 @@ ros2 run robotdynid_ros2 robotdynid-export-runtime \
   --target-root /path/to/controller_package
 ```
 
-This copies the generated `predict_tau` C++ kernel and writes an
-`identified_params.hpp` header with fixed `linear_parameters` and
-`stribeck_parameters` arrays.
+This copies the generated `predict_tau` C++ kernel into the controller package
+and installs `identified_linear_parameters.csv` plus
+`identified_stribeck_parameters.csv` under `runtime/robotdynid`. Updating only
+the identified parameters requires re-exporting the CSV files and reloading the
+controller, not recompiling the controller package.
 
 ## GUI
 

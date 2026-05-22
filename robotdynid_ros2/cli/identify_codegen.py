@@ -40,6 +40,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stribeck-init", default=None, help="Comma-separated Stribeck parameter initial guess.")
     parser.add_argument("--max-iterations", type=int, default=None)
     parser.add_argument("--chunk-size", type=int, default=None)
+    parser.add_argument("--torque-weighting", choices=("none", "torque_std"), default=None)
+    parser.add_argument("--measurement-torque-std", default=None, help="Comma-separated per-joint torque noise standard deviation.")
+    parser.add_argument("--linear-regularization-strength", type=float, default=None)
+    parser.add_argument("--linear-regularization-prior-source", choices=("zero", "urdf"), default=None)
+    parser.add_argument("--linear-regularization-prior", default=None, help="Comma-separated prior vector for linear parameters.")
+    parser.add_argument("--linear-regularization-prior-std", default=None, help="Comma-separated prior std vector.")
+    parser.add_argument(
+        "--robust-loss",
+        choices=("linear", "soft_l1", "huber", "cauchy", "arctan"),
+        default=None,
+    )
+    parser.add_argument("--robust-f-scale", type=float, default=None)
+    parser.add_argument("--robust-max-iterations", type=int, default=None)
     parser.add_argument("--output-dir", default=None, help="Output directory. Defaults to manifest run_dir/identify or runs/<timestamp>.")
     parser.add_argument("--export-code", action="store_true", default=None)
     parser.add_argument("--codegen-languages", default=None)
@@ -52,6 +65,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def _parse_stribeck_init(raw: str) -> np.ndarray | None:
+    return _parse_float_vector(raw)
+
+
+def _parse_float_vector(raw: str) -> np.ndarray | None:
     if not raw:
         return None
     return np.asarray([float(part.strip()) for part in raw.split(",") if part.strip()], dtype=float)
@@ -178,6 +195,9 @@ def main() -> None:
     )
     export_code = bool(config_values["export_code"]) if args.export_code is None else args.export_code
     save_prediction_plot = bool(config_values["save_prediction_plot"]) and not args.no_plot
+    regularization_covariance = config_values["linear_regularization_covariance"]
+    if regularization_covariance is None or regularization_covariance == "" or regularization_covariance == []:
+        regularization_covariance = None
     payload = run_identification_workflow(
         IdentificationWorkflowConfig(
             urdf_path=urdf_path,
@@ -197,6 +217,27 @@ def main() -> None:
             ),
             max_iterations=int(_pick(args.max_iterations, config_values["max_iterations"])),
             chunk_size=int(_pick(args.chunk_size, config_values["chunk_size"])) or None,
+            torque_weighting=_pick_text(args.torque_weighting, str(config_values["torque_weighting"])),
+            measurement_torque_std=_parse_float_vector(
+                _pick_text(args.measurement_torque_std, str(config_values["measurement_torque_std"]))
+            ),
+            linear_regularization_strength=float(
+                _pick(args.linear_regularization_strength, config_values["linear_regularization_strength"])
+            ),
+            linear_regularization_prior_source=_pick_text(
+                args.linear_regularization_prior_source,
+                str(config_values["linear_regularization_prior_source"]),
+            ),
+            linear_regularization_prior=_parse_float_vector(
+                _pick_text(args.linear_regularization_prior, str(config_values["linear_regularization_prior"]))
+            ),
+            linear_regularization_prior_std=_parse_float_vector(
+                _pick_text(args.linear_regularization_prior_std, str(config_values["linear_regularization_prior_std"]))
+            ),
+            linear_regularization_covariance=regularization_covariance,
+            robust_loss=_pick_text(args.robust_loss, str(config_values["robust_loss"])),
+            robust_f_scale=float(_pick(args.robust_f_scale, config_values["robust_f_scale"])),
+            robust_max_iterations=int(_pick(args.robust_max_iterations, config_values["robust_max_iterations"])),
             output_dir=output_dir,
             export_code=export_code,
             codegen_languages=_parse_codegen_languages(_pick_text(args.codegen_languages, str(config_values["codegen_languages"]))),

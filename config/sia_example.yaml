@@ -89,6 +89,14 @@ identification:
   max_samples: 4800
   selection_samples: 400
   chunk_size: 200
+  torque_weighting: torque_std
+  measurement_torque_std: []
+  linear_regularization_strength: 0.0
+  linear_regularization_prior_source: zero
+  linear_regularization_prior_std: []
+  robust_loss: linear
+  robust_f_scale: 1.0
+  robust_max_iterations: 5
   prediction_plot_rate_hz: 10.0
 codegen:
   export_code: true
@@ -100,5 +108,6 @@ run:
 export_runtime:
   run_dir: ''
   target_root: ''
+  runtime_subdir: runtime/robotdynid
   namespace: robotdynid::generated
   class_name: RegressorKernel

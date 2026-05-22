@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from robotdynid_ros2.cli.export_runtime import _params_header, _read_vector
+from robotdynid_ros2.cli.export_runtime import _read_vector, export_runtime
 from robotdynid_ros2.trajectory.excitation import (
     ExcitationSettings,
     _candidate_score,
@@ -14,20 +14,40 @@ from robotdynid_ros2.trajectory.rviz_preview import display_trajectory_from_data
 from robotdynid_ros2.trajectory.schema import read_trajectory_csv, write_trajectory_csv
 
 
-def test_params_header_uses_namespace_and_array_sizes() -> None:
-    header = _params_header("robotdynid::generated", [1.0, 2.0], [0.1])
-
-    assert "namespace robotdynid {" in header
-    assert "namespace generated {" in header
-    assert "std::array<double, 2> kLinearParameters" in header
-    assert "std::array<double, 1> kStribeckParameters" in header
-
-
 def test_read_vector_accepts_named_csv(tmp_path: Path) -> None:
     path = tmp_path / "identified_linear_parameters.csv"
     path.write_text("name,value\nbip01,1.5\nbip02,-2.0\n", encoding="utf-8")
 
     assert _read_vector(path) == [1.5, -2.0]
+
+
+def test_export_runtime_uses_ros2_package_layout(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run" / "identify"
+    codegen_dir = run_dir / "codegen" / "cpp"
+    codegen_dir.mkdir(parents=True)
+    (codegen_dir / "predict_tau.hpp").write_text("#pragma once\n", encoding="utf-8")
+    (codegen_dir / "predict_tau.cpp").write_text('#include "predict_tau.hpp"\n', encoding="utf-8")
+    (codegen_dir / "predict_tau.json").write_text('{"dof": 2}\n', encoding="utf-8")
+    (run_dir / "identified_linear_parameters.csv").write_text("name,value\nbip01,1.0\n", encoding="utf-8")
+    (run_dir / "identified_stribeck_parameters.csv").write_text("name,value\nstribeck1,0.1\n", encoding="utf-8")
+
+    target = tmp_path / "sia_controllers"
+    target.mkdir()
+    (target / "package.xml").write_text("<package><name>sia_controllers</name></package>\n", encoding="utf-8")
+
+    source, header, linear_params, stribeck_params, manifest = export_runtime(
+        run_dir=run_dir,
+        target_root=target,
+    )
+
+    assert source == target / "src/generated/robotdynid/predict_tau.cpp"
+    assert header == target / "include/sia_controllers/generated/robotdynid/predict_tau.hpp"
+    assert linear_params == target / "runtime/robotdynid/identified_linear_parameters.csv"
+    assert stribeck_params == target / "runtime/robotdynid/identified_stribeck_parameters.csv"
+    assert manifest == target / "src/generated/robotdynid/runtime_manifest.json"
+    assert '#include "sia_controllers/generated/robotdynid/predict_tau.hpp"' in source.read_text(encoding="utf-8")
+    assert linear_params.read_text(encoding="utf-8") == "name,value\nbip01,1.0\n"
+    assert stribeck_params.read_text(encoding="utf-8") == "name,value\nstribeck1,0.1\n"
 
 
 def test_generate_sine_trajectory_includes_all_joints() -> None:

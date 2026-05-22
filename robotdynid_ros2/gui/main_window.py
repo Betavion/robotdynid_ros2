@@ -310,6 +310,8 @@ class MainWindow(QMainWindow):
         self.identify_page.identify_requested.connect(self._identify_codegen)
         self.identify_page.browse_manifest_requested.connect(self._browse_manifest)
         self.export_page.export_requested.connect(self._export_runtime)
+        self.export_page.browse_run_dir_requested.connect(self._browse_export_run_dir)
+        self.export_page.browse_target_root_requested.connect(self._browse_export_target_root)
         self.runs_page.run_selected.connect(self._on_run_selected)
         self.runner.started.connect(self._on_process_started)
         self.runner.output.connect(self._append_log)
@@ -411,6 +413,26 @@ class MainWindow(QMainWindow):
         )
         if path:
             self.collect_page.set_trajectory_path(path)
+
+    def _browse_export_run_dir(self) -> None:
+        current = self.export_page.run_dir_path() if self.export_page.run_dir.text().strip() else self.workspace / "runs"
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            self._t("open_identify_dir_title"),
+            str(self._workspace_path(current)),
+        )
+        if directory:
+            self.export_page.run_dir.setText(directory)
+
+    def _browse_export_target_root(self) -> None:
+        current = self.export_page.target_root_path() if self.export_page.target_root.text().strip() else self.workspace / "src"
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            self._t("open_target_root_title"),
+            str(self._workspace_path(current)),
+        )
+        if directory:
+            self.export_page.target_root.setText(directory)
 
     def _generate_excitation(self) -> None:
         config = self._save_before_command()
