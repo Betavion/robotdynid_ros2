@@ -96,7 +96,7 @@ identification:
   linear_regularization_prior_std: []
   robust_loss: huber
   robust_f_scale: 1.0
-  robust_max_iterations: 5
+  robust_max_iterations: 7
   prediction_plot_rate_hz: 10.0
 codegen:
   export_code: true

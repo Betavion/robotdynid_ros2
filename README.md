@@ -40,7 +40,14 @@ environment if desired:
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-pip install -e robotdynid
+pip install -r src/robotdynid_ros2/requirements.txt
+pip install -e src/robotdynid_ros2/robotdynid
+```
+
+The GUI adds optional desktop dependencies on top of the core workflow stack:
+
+```bash
+pip install -r src/robotdynid_ros2/requirements-gui.txt
 ```
 
 ## Configuration
