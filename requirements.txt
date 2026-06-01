@@ -1,0 +1,4 @@
+# Non-ROS Python runtime dependencies for robotdynid_ros2.
+# ROS modules such as rclpy, rosbag2_py, and *_msgs are provided by ROS 2.
+-r robotdynid/requirements.txt
+PyYAML>=6.0

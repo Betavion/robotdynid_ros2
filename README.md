@@ -40,7 +40,15 @@ environment if desired:
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
+pip install -r requirements.txt
 pip install -e robotdynid
+```
+
+GUI 和测试依赖是可选项：
+
+```bash
+pip install -r requirements-gui.txt   # CLI + GUI
+pip install -r requirements-dev.txt   # CLI + GUI + pytest
 ```
 
 ## Configuration
