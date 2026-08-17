@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-from robotdynid_ros2.preprocessing.acceleration import main
+from robotdynid_ros2.runtime_environment import reexec_with_venv_cmeel
+
+reexec_with_venv_cmeel()
+
+from robotdynid_ros2.preprocessing.acceleration import main  # noqa: E402, E501, I100, I202
 
 
 if __name__ == "__main__":
